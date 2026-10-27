@@ -1,0 +1,41 @@
+.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.right { display: grid; gap: 20px; }
+fieldset { border: 0; padding: 0; margin: 0; }
+
+.logo-row { display: flex; gap: 14px; align-items: center; padding: 14px; border: 1px dashed var(--border); border-radius: var(--r-card); background: var(--surface-2); }
+.logo { width: 56px; height: 56px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 20px; flex: none; }
+
+.palette { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.swatch { width: 36px; height: 36px; border-radius: 10px; border: 3px solid transparent; cursor: pointer;
+  &.on { border-color: var(--text); } }
+.hex { width: 120px; }
+
+.member { display: flex; gap: 12px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border);
+  .who { flex: 1; } }
+.avatar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; font-weight: 600; color: var(--muted); }
+.strong { font-weight: 600; }
+.small { font-size: 12px; }
+.member-form h3 { font-size: 14px; margin-bottom: 12px; }
+.buttons { display: flex; gap: 8px; }
+
+// Planshet namunasi — light mavzu, maktab rangi bilan
+.preview {
+  --p: #2563eb;
+  border-radius: var(--r-card);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 18px;
+}
+.pv-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.pv-room { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; padding-right: 14px; border-right: 1px solid var(--border); }
+.pv-school { flex: 1; font-size: 13px; span { color: var(--muted); } }
+.pv-clock { font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pv-hero { background: var(--surface); border: 2px solid var(--p); border-radius: 12px; padding: 14px 18px; }
+.pv-label { color: var(--p); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; filter: brightness(0.88); }
+.pv-title { font-size: 28px; font-weight: 700; }
+.pv-sub { color: var(--muted); b { color: var(--text); } }
+.pv-bar { height: 5px; background: var(--border); border-radius: 3px; margin: 10px 0 8px; overflow: hidden;
+  div { width: 50%; height: 100%; background: var(--p); } }
+.pv-foot { display: flex; justify-content: space-between; font-size: 12px; span { color: var(--muted); } }
+
+@media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } }

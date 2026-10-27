@@ -1,0 +1,72 @@
+@if (error(); as err) {
+  <div class="error">{{ err }}</div>
+} @else if (data(); as d) {
+  <header class="top">
+    <div class="room-name">{{ d.room.name }}</div>
+    <div class="meta">
+      <div class="school-name">{{ d.school.name }}</div>
+      <div class="date">{{ dateLabel() }}</div>
+    </div>
+    <div class="clock" [class.stale]="stale()">{{ clock() }}</div>
+  </header>
+
+  @if (banner(); as b) {
+    <div class="day-banner" [class]="'day-banner ' + b.tone">{{ b.text }}</div>
+  }
+
+  @if (day()?.status === 'lesson' || day()?.status === 'exam') {
+    @if (hero(); as cur) {
+      <section class="hero" [class.exam]="cur.kind === 'exam'" [class.club]="cur.kind === 'club'" [class.break]="cur.kind === 'coffee_break' || cur.kind === 'lunch'">
+        <div class="hero-kind">{{ kindLabel(cur.kind) }} · {{ cur.start_time }}–{{ cur.end_time }}</div>
+        <div class="hero-title">{{ cur.title }}</div>
+        @if (cur.group || cur.teacher) {
+          <div class="hero-sub">
+            @if (cur.group) { <span class="group">{{ cur.group }}</span> }
+            @if (cur.teacher) { <span class="teacher">{{ cur.teacher }}</span> }
+          </div>
+        }
+        <div class="progress"><div class="bar" [style.width.%]="progress()"></div></div>
+        <div class="hero-footer">
+          @if (minutesLeft() !== null) {
+            <span class="left">{{ minutesLeft() }} daqiqa qoldi</span>
+          }
+          @if (next(); as n) {
+            <span class="hero-next">Keyingi: {{ n.title }} · {{ n.start_time }}</span>
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="hero free">
+        <div class="hero-kind">Hozir</div>
+        <div class="hero-title">Xona bo'sh</div>
+        <div class="hero-footer">
+          @if (next(); as n) {
+            <span class="hero-next">Keyingi: {{ n.title }} · {{ n.start_time }}</span>
+          } @else {
+            <span class="hero-next">Bugun boshqa mashg'ulot yo'q</span>
+          }
+        </div>
+      </section>
+    }
+
+    <ul class="entries">
+      @for (e of day()!.entries; track e.start_time + e.title) {
+        <li class="entry" [class]="'entry ' + e.kind + ' ' + e.status">
+          <span class="time">{{ e.start_time }}<small>{{ e.end_time }}</small></span>
+          <span class="dot" [style.background]="e.subject_color"></span>
+          <span class="body">
+            <span class="title">{{ e.title }}</span>
+            @if (e.group || e.teacher) {
+              <span class="sub">{{ e.group }} @if (e.group && e.teacher) { · } {{ e.teacher }}</span>
+            }
+          </span>
+          <span class="kind">{{ kindLabel(e.kind) }}</span>
+        </li>
+      } @empty {
+        <li class="empty">Bu xonada bugun mashg'ulot yo'q</li>
+      }
+    </ul>
+  }
+} @else {
+  <div class="loading">Yuklanmoqda…</div>
+}

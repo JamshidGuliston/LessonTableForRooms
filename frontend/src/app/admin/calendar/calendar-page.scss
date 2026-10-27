@@ -1,0 +1,70 @@
+.year-select { width: auto; min-width: 130px; background: var(--surface); }
+.small { font-size: 13px; margin-top: 2px; }
+
+.timeline-card { padding: 20px 24px 36px; margin-bottom: 20px; }
+.tl-head { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; flex-wrap: wrap;
+  h2 { font-size: 16px; } }
+.legend { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px;
+  i { width: 10px; height: 10px; border-radius: 3px; } }
+
+.term { background: var(--primary); }
+.break { background: #cbd5e1; }
+.exam { background: var(--exam); }
+
+.months { position: relative; height: 20px; color: var(--muted); font-size: 13px; font-weight: 500;
+  span { position: absolute; top: 0; } }
+
+.track {
+  position: relative;
+  height: 44px;
+  margin-top: 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.span {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 2px;
+  &.break { color: var(--text); }
+}
+
+.today {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--text);
+  span { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; white-space: nowrap; }
+}
+
+.layout-with-panel.no-panel { grid-template-columns: 1fr; }
+.lists { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.stack { display: grid; gap: 20px; }
+
+.list .item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  &:last-child { border-bottom: 0; }
+  &.selected { background: var(--primary-tint); }
+  .name { flex: 1; font-weight: 600; }
+  .range { color: var(--muted); }
+}
+.sq { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.none { padding: 16px 18px; }
+
+@media (max-width: 1100px) { .lists { grid-template-columns: 1fr; } }

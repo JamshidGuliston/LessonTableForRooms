@@ -1,0 +1,182 @@
+<app-page-head title="Dars jadvali">
+  @if (ctx.isAdmin()) {
+    <button class="btn" type="button" (click)="copyOpen.set(true)" [disabled]="!termId()">
+      <app-icon name="copy" /> Nusxalash
+    </button>
+    <button class="btn primary" type="button" (click)="openAdd()" [disabled]="!termId() || !entityId()">
+      <app-icon name="plus" /> Dars qo'shish
+    </button>
+  }
+</app-page-head>
+
+<div class="page-body">
+  <div class="toolbar">
+    <select class="input term" aria-label="Chorak" [ngModel]="termId()" (ngModelChange)="termId.set($event); close()">
+      @for (t of terms(); track t.id) {
+        <option [ngValue]="t.id">{{ t.name }} · {{ rangeLabel(t.start_date, t.end_date) }}</option>
+      }
+    </select>
+    <div class="segment" role="tablist">
+      <button type="button" [class.on]="view() === 'group'" (click)="setView('group')">Guruh bo'yicha</button>
+      <button type="button" [class.on]="view() === 'teacher'" (click)="setView('teacher')">O'qituvchi bo'yicha</button>
+      <button type="button" [class.on]="view() === 'room'" (click)="setView('room')">Xona bo'yicha</button>
+    </div>
+    <select class="input entity" aria-label="Tanlash" [ngModel]="entityId()" (ngModelChange)="entityId.set($event); close()">
+      @for (e of entities(); track e.id) {
+        <option [ngValue]="e.id">{{ e.name }}</option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Yuklanmoqda…</div>
+  } @else if (!terms().length) {
+    <div class="card empty"><div class="title">Chorak yo'q</div>Avval Kalendar bo'limida o'quv yili va chorak qo'shing.</div>
+  } @else if (!periods().length) {
+    <div class="card empty"><div class="title">Qo'ng'iroq jadvali bo'sh</div>Avval dars vaqtlarini kiriting.</div>
+  } @else {
+    <div class="layout-with-panel" [class.no-panel]="!draft()">
+      <div class="card grid-card">
+        <table class="tt">
+          <thead>
+            <tr>
+              <th class="period-col">Dars vaqti</th>
+              @for (w of weekdays(); track w) {
+                <th [class.today]="w === todayWeekday">{{ WEEKDAYS_SHORT[w] }}@if (w === todayWeekday) { · bugun }</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of grid(); track row.period.id) {
+              @if (row.isBreak) {
+                <tr class="break-row">
+                  <td class="period-col"><div class="pname">{{ row.period.name }}</div><div class="ptime tnum">{{ hm(row.period.start_time) }}–{{ hm(row.period.end_time) }}</div></td>
+                  <td [attr.colspan]="weekdays().length" class="break-label" [class.lunch]="row.period.kind === 'lunch'">
+                    {{ row.period.kind === 'lunch' ? 'TUSHLIK' : 'TANAFFUS' }}
+                  </td>
+                </tr>
+              } @else {
+                <tr>
+                  <td class="period-col"><div class="pname strong">{{ row.period.name }}</div><div class="ptime tnum">{{ hm(row.period.start_time) }}–{{ hm(row.period.end_time) }}</div></td>
+                  @for (cell of row.cells; track cell.weekday) {
+                    <td class="cell">
+                      @if (cell.lesson; as l) {
+                        <button type="button" class="chip" [class.selected]="draft()?.id === l.id" (click)="openEdit(l)"
+                                [title]="l.subject_name + ' · ' + l.group_name + ' · ' + l.teacher_name + ' · ' + l.room_name">
+                          <span class="t"><span class="dot" [style.background]="colorBySubject().get(l.subject) || null"></span>{{ lines(l).title }}</span>
+                          <span class="s">{{ lines(l).sub }}</span>
+                        </button>
+                      } @else if (ctx.isAdmin()) {
+                        <button type="button" class="chip add"
+                                [class.selected]="!draft()?.id && draft()?.weekday === cell.weekday && draft()?.period === row.period.id"
+                                (click)="openNew(cell.weekday, row.period.id)" aria-label="Dars qo'shish">+</button>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (draft(); as d) {
+        <aside class="card side-panel">
+          <div class="card-head">
+            <div>
+              <h2>{{ d.id ? 'Darsni tahrirlash' : "Dars qo'shish" }}</h2>
+              <div class="muted small">{{ WEEKDAYS[d.weekday] }} · {{ draftPeriod()?.name }} · {{ hm(draftPeriod()?.start_time) }}–{{ hm(draftPeriod()?.end_time) }}</div>
+            </div>
+            <button class="btn icon" type="button" (click)="close()" aria-label="Yopish"><app-icon name="x" /></button>
+          </div>
+          <form class="card-body" (ngSubmit)="save()">
+            @if (errors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+
+            <div class="row-2">
+              <div class="field">
+                <label for="wd">Kun</label>
+                <select id="wd" class="input" name="weekday" [ngModel]="d.weekday" (ngModelChange)="patch({ weekday: $event })">
+                  @for (w of weekdays(); track w) { <option [ngValue]="w">{{ WEEKDAYS[w] }}</option> }
+                </select>
+              </div>
+              <div class="field">
+                <label for="pr">Dars vaqti</label>
+                <select id="pr" class="input" name="period" [ngModel]="d.period" (ngModelChange)="patch({ period: $event })" [class.invalid]="!!errors()?.fields?.['period']">
+                  @for (p of lessonPeriods(); track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+                </select>
+              </div>
+            </div>
+            @if (errors()?.fields?.['period']; as m) { <div class="field"><div class="error">{{ m }}</div></div> }
+
+            <div class="field">
+              <label for="sb">Fan</label>
+              <select id="sb" class="input" name="subject" [ngModel]="d.subject" (ngModelChange)="patch({ subject: $event })" [class.invalid]="!!errors()?.fields?.['subject']" required>
+                <option [ngValue]="null" disabled>Tanlang</option>
+                @for (s of subjects(); track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
+              </select>
+              @if (errors()?.fields?.['subject']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+            <div class="field">
+              <label for="tc">O'qituvchi</label>
+              <select id="tc" class="input" name="teacher" [ngModel]="d.teacher" (ngModelChange)="patch({ teacher: $event })" [class.invalid]="!!errors()?.fields?.['teacher']" required>
+                <option [ngValue]="null" disabled>Tanlang</option>
+                @for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.full_name }}</option> }
+              </select>
+              @if (errors()?.fields?.['teacher']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+            <div class="field">
+              <label for="rm">Xona</label>
+              <select id="rm" class="input" name="room" [ngModel]="d.room" (ngModelChange)="patch({ room: $event })" [class.invalid]="!!errors()?.fields?.['room']" required>
+                <option [ngValue]="null" disabled>Tanlang</option>
+                @for (r of rooms(); track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
+              </select>
+              @if (errors()?.fields?.['room']; as m) { <div class="error"><app-icon name="alert" [size]="15" /> {{ m }}</div> }
+            </div>
+            <div class="field">
+              <label for="gr">Guruh</label>
+              <select id="gr" class="input" name="group" [ngModel]="d.group" (ngModelChange)="patch({ group: $event })" [class.invalid]="!!errors()?.fields?.['group']" required>
+                <option [ngValue]="null" disabled>Tanlang</option>
+                @for (g of groups(); track g.id) { <option [ngValue]="g.id">{{ g.name }}</option> }
+              </select>
+              @if (errors()?.fields?.['group']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+
+            <div class="buttons">
+              <button class="btn primary" type="submit" [disabled]="saving() || !d.subject || !d.teacher || !d.room || !d.group">Saqlash</button>
+              @if (d.id) {
+                <button class="btn danger" type="button" (click)="remove()" [disabled]="saving()">O'chirish</button>
+              } @else {
+                <button class="btn" type="button" (click)="close()">Bekor qilish</button>
+              }
+            </div>
+          </form>
+        </aside>
+      }
+    </div>
+  }
+</div>
+
+@if (copyOpen()) {
+  <div class="backdrop" (click)="copyOpen.set(false)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="copy-title" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2 id="copy-title">Jadvalni nusxalash</h2>
+        <button class="btn icon" type="button" (click)="copyOpen.set(false)" aria-label="Yopish"><app-icon name="x" /></button>
+      </div>
+      <p class="muted">Tanlangan chorakdagi butun jadval <b>{{ currentTerm()?.name }}</b> ga nusxalanadi. Maqsad chorak bo'sh bo'lishi kerak.</p>
+      <div class="field">
+        <label for="cf">Qaysi chorakdan</label>
+        <select id="cf" class="input" [(ngModel)]="copyFrom">
+          <option [ngValue]="null" disabled>Tanlang</option>
+          @for (t of terms(); track t.id) {
+            @if (t.id !== termId()) { <option [ngValue]="t.id">{{ t.name }} · {{ rangeLabel(t.start_date, t.end_date) }}</option> }
+          }
+        </select>
+      </div>
+      <div class="buttons">
+        <button class="btn" type="button" (click)="copyOpen.set(false)">Bekor qilish</button>
+        <button class="btn primary" type="button" (click)="copy()" [disabled]="!copyFrom">Nusxalash</button>
+      </div>
+    </div>
+  </div>
+}

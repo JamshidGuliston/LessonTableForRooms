@@ -1,0 +1,42 @@
+.year-select { width: auto; background: var(--surface); }
+
+.layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+.club-list { display: grid; gap: 10px; }
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+
+  .info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .name { font-weight: 600; font-size: 15px; }
+  .muted { font-size: 13px; }
+  &:hover { border-color: color-mix(in srgb, var(--club) 50%, var(--border)); }
+  &.on { border: 2px solid var(--club); padding: 13px 15px; }
+  &.inactive { opacity: 0.6; }
+}
+
+.dot { width: 12px; height: 12px; }
+.dot.big { width: 14px; height: 14px; }
+.desc { padding: 12px 18px 0; margin: 0; }
+.strong { font-weight: 600; }
+tr.selected td { background: var(--primary-tint) !important; }
+.toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; cursor: pointer; }
+
+.palette { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent; cursor: pointer;
+  &.on { border-color: var(--text); } }
+
+.session-form { border-top: 1px solid var(--border); h3 { font-size: 14px; margin-bottom: 12px; } }
+.row-4 { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; }
+.buttons { display: flex; gap: 8px; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr; }
+  .row-4 { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,138 @@
+<app-page-head title="To'garaklar" sub="Darslardan keyingi mashg'ulotlar — o'quv yili davomida har hafta">
+  @if (years().length > 1) {
+    <select before class="input year-select" aria-label="O'quv yili" [ngModel]="yearId()" (ngModelChange)="yearId.set($event)">
+      @for (y of years(); track y.id) { <option [ngValue]="y.id">{{ y.name }}</option> }
+    </select>
+  }
+  @if (ctx.isAdmin()) {
+    <button class="btn primary" type="button" (click)="newClub()"><app-icon name="plus" /> To'garak qo'shish</button>
+  }
+</app-page-head>
+
+<div class="page-body">
+  @if (loading()) {
+    <div class="loading">Yuklanmoqda…</div>
+  } @else {
+    <div class="layout">
+      <div class="club-list">
+        @for (c of clubs(); track c.id) {
+          <button type="button" class="card club" [class.on]="c.id === selectedId()" [class.inactive]="!c.is_active" (click)="select(c)">
+            <span class="dot" [style.background]="c.color || 'var(--club)'"></span>
+            <span class="info">
+              <span class="name">{{ c.name }}</span>
+              <span class="muted">{{ c.leader_name || 'Rahbar yo\'q' }} · {{ countByClub().get(c.id) ?? 0 }} ta mashg'ulot / hafta</span>
+            </span>
+            @if (!c.is_active) { <span class="pill caps">Faol emas</span> }
+          </button>
+        } @empty {
+          <div class="card empty">
+            <div class="title">Hali to'garak yo'q</div>
+            <p>Shaxmat, robototexnika, futbol…</p>
+            @if (ctx.isAdmin()) { <button class="btn primary" type="button" (click)="newClub()"><app-icon name="plus" /> To'garak qo'shish</button> }
+          </div>
+        }
+      </div>
+
+      <div class="detail">
+        @if (clubDraft(); as d) {
+          <section class="card">
+            <div class="card-head">
+              <h2>{{ d.id ? "To'garakni tahrirlash" : "Yangi to'garak" }}</h2>
+              <button class="btn icon" type="button" (click)="clubDraft.set(null)" aria-label="Yopish"><app-icon name="x" /></button>
+            </div>
+            <form class="card-body" (ngSubmit)="saveClub()">
+              @if (errors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+              <div class="field"><label for="cn">Nomi</label>
+                <input id="cn" class="input" name="name" required [ngModel]="d.name" (ngModelChange)="patchClub({ name: $event })" [class.invalid]="!!errors()?.fields?.['name']" />
+                @if (errors()?.fields?.['name']; as m) { <div class="error">{{ m }}</div> }
+              </div>
+              <div class="field"><label for="cl">Rahbar</label>
+                <select id="cl" class="input" name="leader" [ngModel]="d.leader" (ngModelChange)="patchClub({ leader: $event })">
+                  <option [ngValue]="null">— yo'q —</option>
+                  @for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.full_name }}</option> }
+                </select>
+              </div>
+              <div class="field"><label>Rangi</label>
+                <div class="palette">
+                  @for (c of COLORS; track c) {
+                    <button type="button" class="swatch" [style.background]="c" [class.on]="d.color === c" (click)="patchClub({ color: c })" [attr.aria-label]="c"></button>
+                  }
+                </div>
+              </div>
+              <div class="field"><label for="cd">Tavsif</label>
+                <textarea id="cd" class="input" name="desc" [ngModel]="d.description" (ngModelChange)="patchClub({ description: $event })"></textarea>
+              </div>
+              <div class="buttons">
+                <button class="btn primary" type="submit" [disabled]="saving() || !d.name">Saqlash</button>
+                <button class="btn" type="button" (click)="clubDraft.set(null)">Bekor qilish</button>
+              </div>
+            </form>
+          </section>
+        } @else if (selected(); as c) {
+          <section class="card">
+            <div class="card-head">
+              <span class="dot big" [style.background]="c.color || 'var(--club)'"></span>
+              <h2>{{ c.name }} <span class="hint">{{ c.leader_name }}</span></h2>
+              @if (ctx.isAdmin()) {
+                <label class="toggle"><input type="checkbox" [checked]="c.is_active" (change)="toggleActive(c)" /> Faol</label>
+                <button class="btn icon sm" type="button" (click)="editClub(c)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button>
+                <button class="btn icon sm danger" type="button" (click)="removeClub(c)" aria-label="O'chirish"><app-icon name="trash" [size]="15" /></button>
+              }
+            </div>
+            @if (c.description) { <p class="desc muted">{{ c.description }}</p> }
+            <table class="table">
+              <thead><tr><th>Hafta kuni</th><th>Vaqt</th><th>Xona</th>@if (ctx.isAdmin()) { <th></th> }</tr></thead>
+              <tbody>
+                @for (s of selectedSessions(); track s.id) {
+                  <tr [class.selected]="sessionDraft()?.id === s.id">
+                    <td class="strong">{{ WEEKDAYS[s.weekday] }}</td>
+                    <td class="tnum">{{ hm(s.start_time) }}–{{ hm(s.end_time) }}</td>
+                    <td class="tnum">{{ s.room_name }}</td>
+                    @if (ctx.isAdmin()) {
+                      <td class="actions">
+                        <button class="btn icon sm" type="button" (click)="editSession(s)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button>
+                        <button class="btn icon sm danger" type="button" (click)="removeSession(s)" aria-label="O'chirish"><app-icon name="trash" [size]="15" /></button>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="muted">Mashg'ulot yo'q</td></tr>
+                }
+              </tbody>
+            </table>
+            @if (ctx.isAdmin() && !sessionDraft()) {
+              <div class="card-body"><button class="btn" type="button" (click)="newSession()" [disabled]="!yearId()"><app-icon name="plus" /> Mashg'ulot qo'shish</button></div>
+            }
+
+            @if (sessionDraft(); as d) {
+              <form class="card-body session-form" (ngSubmit)="saveSession()">
+                <h3>{{ d.id ? "Mashg'ulotni tahrirlash" : "Mashg'ulot qo'shish" }}</h3>
+                @if (errors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+                <div class="row-4">
+                  <div class="field"><label for="sw">Hafta kuni</label>
+                    <select id="sw" class="input" name="wd" [ngModel]="d.weekday" (ngModelChange)="patchSession({ weekday: $event })">
+                      @for (w of WEEKDAYS; track $index) { <option [ngValue]="$index">{{ w }}</option> }
+                    </select></div>
+                  <div class="field"><label for="ss">Boshlanish</label>
+                    <input id="ss" class="input tnum" type="time" name="st" [ngModel]="d.start_time" (ngModelChange)="patchSession({ start_time: $event })" /></div>
+                  <div class="field"><label for="se">Tugash</label>
+                    <input id="se" class="input tnum" type="time" name="et" [ngModel]="d.end_time" (ngModelChange)="patchSession({ end_time: $event })" /></div>
+                  <div class="field"><label for="sr">Xona</label>
+                    <select id="sr" class="input" name="room" [ngModel]="d.room" (ngModelChange)="patchSession({ room: $event })" [class.invalid]="!!errors()?.fields?.['room']">
+                      <option [ngValue]="null" disabled>Tanlang</option>
+                      @for (r of rooms(); track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
+                    </select></div>
+                </div>
+                @if (errors()?.fields?.['room']; as m) { <div class="field"><div class="error"><app-icon name="alert" [size]="15" /> {{ m }}</div></div> }
+                <div class="buttons">
+                  <button class="btn primary" type="submit" [disabled]="saving() || !d.room">Saqlash</button>
+                  <button class="btn" type="button" (click)="sessionDraft.set(null); errors.set(null)">Bekor qilish</button>
+                </div>
+              </form>
+            }
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>

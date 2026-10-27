@@ -1,0 +1,135 @@
+// Eshik yonidagi planshet: katta matn, uzoqdan o'qiladi. Faqat light mavzu (docs/design A1).
+:host {
+  --panel: var(--surface);
+  --panel-2: var(--surface);
+  --accent: var(--primary);
+  --past: 0.4;
+
+  display: block;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.room-name {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.meta {
+  .school-name { font-size: 22px; font-weight: 600; }
+  .date { color: var(--muted); font-size: 18px; margin-top: 4px; }
+}
+
+.clock {
+  font-size: 64px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  &.stale { color: var(--muted); }
+}
+
+.day-banner {
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  &.holiday { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+  &.exam { background: var(--exam); color: var(--text); }
+}
+
+.hero {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+
+  &.exam { border-color: var(--exam); }
+  &.break { border-color: var(--break); }
+  &.club { border-color: var(--club); }
+  &.free { border: 1px solid var(--border); .hero-title { color: var(--muted); } }
+
+  .hero-kind { color: var(--muted); font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+  .hero-title { font-size: 56px; font-weight: 800; line-height: 1.1; margin: 6px 0; }
+  .hero-sub { font-size: 26px; display: flex; gap: 24px; .group { font-weight: 700; } .teacher { color: var(--muted); } }
+  .progress { height: 6px; background: var(--border); border-radius: 3px; margin: 18px 0 10px; overflow: hidden;
+    .bar { height: 100%; background: var(--accent); transition: width 1s linear; } }
+  &.exam .bar { background: var(--exam); }
+  &.break .bar { background: var(--break); }
+  &.club .bar { background: var(--club); }
+  .hero-footer { display: flex; justify-content: space-between; font-size: 18px; color: var(--muted);
+    .left { color: var(--text); font-weight: 600; } }
+}
+
+.entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 80px 12px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 20px;
+
+  .time { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; font-weight: 600;
+    small { color: var(--muted); font-size: 14px; font-weight: 400; } }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--primary); }
+  .body { display: flex; flex-direction: column; .title { font-weight: 600; } .sub { color: var(--muted); font-size: 16px; } }
+  .kind { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+
+  &.coffee_break, &.lunch { background: var(--surface-2); border: 1px dashed var(--border); .dot { background: var(--break); } .title { color: var(--break-text); } }
+  &.exam .dot { background: var(--exam); }
+  &.club .dot { background: var(--club); }
+  &.past { opacity: var(--past); }
+  &.active { background: var(--surface); outline: 2px solid var(--accent); .kind { color: var(--primary-text); } }
+  &.active.exam { outline-color: var(--exam); .kind { color: var(--exam); } }
+  &.active.coffee_break, &.active.lunch { outline-color: var(--break); .kind { color: var(--break); } }
+  &.active.club { outline-color: var(--club); .kind { color: var(--club); } }
+}
+
+.empty, .loading, .error {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 24px;
+}
+.error { color: var(--danger-text); }
+
+@media (max-width: 700px) {
+  :host { padding: 16px; }
+  .top { grid-template-columns: 1fr auto; .meta { grid-column: 1 / -1; } }
+  .room-name { font-size: 48px; }
+  .clock { font-size: 40px; }
+  .hero .hero-title { font-size: 36px; }
+  .hero .hero-sub { font-size: 20px; }
+}
+
+// Hero yorlig'i tur rangida (Android ilova bilan bir xil)
+.hero .hero-kind { color: var(--primary-text); font-weight: 700; }
+.hero.exam .hero-kind { color: var(--exam-text); }
+.hero.break .hero-kind { color: var(--break-text); }
+.hero.club .hero-kind { color: var(--club-text); }
+.hero.free .hero-kind { color: var(--muted); }

@@ -1,0 +1,128 @@
+<app-page-head title="Sozlamalar" sub="Maktab brendi, vaqt zonasi va foydalanuvchilar">
+  @if (ctx.isAdmin()) {
+    <button class="btn primary" type="button" (click)="save()" [disabled]="saving() || !form()">Saqlash</button>
+  }
+</app-page-head>
+
+<div class="page-body">
+  @if (form(); as f) {
+    <div class="columns">
+      <section class="card">
+        <div class="card-head"><h2>Maktab</h2></div>
+        <form class="card-body" (ngSubmit)="save()">
+          @if (errors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+          <fieldset [disabled]="!ctx.isAdmin()">
+            <div class="field">
+              <label for="sn">Maktab nomi</label>
+              <input id="sn" class="input" name="name" [ngModel]="f.name" (ngModelChange)="patch({ name: $event })" [class.invalid]="!!errors()?.fields?.['name']" />
+              @if (errors()?.fields?.['name']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+            <div class="field">
+              <label>Belgi</label>
+              <div class="logo-row">
+                <div class="logo" [style.background]="f.primary_color">{{ initials(f.name) }}</div>
+                <div class="muted">Maktab nomining bosh harflari va asosiy rang. Manzil: <code>{{ f.slug }}</code></div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="sc">Asosiy rang</label>
+              <div class="palette">
+                @for (c of COLORS; track c) {
+                  <button type="button" class="swatch" [style.background]="c" [class.on]="f.primary_color.toUpperCase() === c" (click)="patch({ primary_color: c })" [attr.aria-label]="c"></button>
+                }
+                <input id="sc" class="input hex tnum" name="color" [ngModel]="f.primary_color" (ngModelChange)="patch({ primary_color: $event })" [class.invalid]="!!errors()?.fields?.['primary_color']" />
+              </div>
+              @if (errors()?.fields?.['primary_color']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+            <div class="field">
+              <label for="tz">Vaqt zonasi</label>
+              <select id="tz" class="input" name="tz" [ngModel]="f.timezone" (ngModelChange)="patch({ timezone: $event })">
+                @for (z of ZONES; track z) { <option [value]="z">{{ z }}</option> }
+                @if (!ZONES.includes(f.timezone)) { <option [value]="f.timezone">{{ f.timezone }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label>Ish kunlari</label>
+              <div class="chips">
+                @for (d of WEEKDAYS_SHORT; track $index) {
+                  <button type="button" class="chip-toggle" [class.on]="days().includes($index)" (click)="toggleDay($index)">{{ d }}</button>
+                }
+              </div>
+              @if (errors()?.fields?.['working_days']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+          </fieldset>
+        </form>
+      </section>
+
+      <div class="right">
+        <section class="card">
+          <div class="card-head"><h2>Planshetda ko'rinishi <span class="hint">jonli namuna</span></h2></div>
+          <div class="card-body">
+            <div class="preview" [style.--p]="f.primary_color">
+              <div class="pv-top"><span class="pv-room">101</span><span class="pv-school"><b>{{ f.name }}</b><br /><span>Payshanba, 22-oktabr</span></span><span class="pv-clock">10:42</span></div>
+              <div class="pv-hero">
+                <div class="pv-label">DARS · 10:20–11:05</div>
+                <div class="pv-title">Tarix</div>
+                <div class="pv-sub"><b>9-A</b> Nazarova Gulnora</div>
+                <div class="pv-bar"><div></div></div>
+                <div class="pv-foot"><b>23 daqiqa qoldi</b><span>Keyingi: Tushlik · 11:05</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Foydalanuvchilar</h2>
+            @if (ctx.isAdmin()) { <button class="btn sm" type="button" (click)="newMember()">+ Qo'shish</button> }
+          </div>
+          @for (m of members(); track m.id) {
+            <div class="member">
+              <div class="avatar">{{ (m.full_name || m.username)[0].toUpperCase() }}</div>
+              <div class="who"><div class="strong">{{ m.full_name || m.username }}</div><div class="muted small">{{ m.username }}</div></div>
+              <span class="pill caps" [class.lesson]="m.role === 'admin'">{{ m.role === 'admin' ? 'Admin' : 'Xodim' }}</span>
+              @if (ctx.isAdmin()) {
+                <button class="btn icon sm" type="button" (click)="editMember(m)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button>
+                @if (m.username !== me()) {
+                  <button class="btn icon sm danger" type="button" (click)="removeMember(m)" aria-label="Olib tashlash"><app-icon name="trash" [size]="15" /></button>
+                }
+              }
+            </div>
+          }
+
+          @if (memberDraft(); as d) {
+            <form class="card-body member-form" (ngSubmit)="saveMember()">
+              <h3>{{ d.id ? 'Tahrirlash' : "Foydalanuvchi qo'shish" }}</h3>
+              @if (memberErrors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+              <div class="row-2">
+                <div class="field"><label for="mu">Login</label>
+                  <input id="mu" class="input" name="u" autocomplete="off" [disabled]="!!d.id" [ngModel]="d.username" (ngModelChange)="patchMember({ username: $event })" [class.invalid]="!!memberErrors()?.fields?.['username']" />
+                  @if (memberErrors()?.fields?.['username']; as m) { <div class="error">{{ m }}</div> }
+                </div>
+                <div class="field"><label for="mf">F.I.Sh.</label>
+                  <input id="mf" class="input" name="f" [ngModel]="d.full_name" (ngModelChange)="patchMember({ full_name: $event })" /></div>
+              </div>
+              <div class="row-2">
+                <div class="field"><label for="mp">{{ d.id ? 'Yangi parol (ixtiyoriy)' : 'Parol' }}</label>
+                  <input id="mp" class="input" name="p" type="password" autocomplete="new-password" [ngModel]="d.password" (ngModelChange)="patchMember({ password: $event })" [class.invalid]="!!memberErrors()?.fields?.['password']" />
+                  @if (memberErrors()?.fields?.['password']; as m) { <div class="error">{{ m }}</div> }
+                </div>
+                <div class="field"><label for="mr">Rol</label>
+                  <select id="mr" class="input" name="r" [ngModel]="d.role" (ngModelChange)="patchMember({ role: $event })">
+                    <option value="admin">Admin — o'zgartiradi</option>
+                    <option value="staff">Xodim — faqat ko'radi</option>
+                  </select></div>
+              </div>
+              <div class="buttons">
+                <button class="btn primary" type="submit" [disabled]="!d.username">Saqlash</button>
+                <button class="btn" type="button" (click)="memberDraft.set(null)">Bekor qilish</button>
+              </div>
+            </form>
+          }
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="loading">Yuklanmoqda…</div>
+  }
+</div>

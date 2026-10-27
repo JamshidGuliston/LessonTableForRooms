@@ -1,0 +1,152 @@
+<app-page-head title="Kalendar" [sub]="year() ? year()!.name + ' o\'quv yili' : ''">
+  @if (years().length) {
+    <select before class="input year-select" aria-label="O'quv yili" [ngModel]="yearId()" (ngModelChange)="yearId.set($event); close()">
+      @for (y of years(); track y.id) { <option [ngValue]="y.id">{{ y.name }}</option> }
+    </select>
+  }
+  @if (ctx.isAdmin()) {
+    @if (year()) {
+      <button class="btn" type="button" (click)="openEdit('year', year()!)"><app-icon name="edit" /> Yilni tahrirlash</button>
+    }
+    <button class="btn primary" type="button" (click)="openNew('year')"><app-icon name="plus" /> Yangi o'quv yili</button>
+  }
+</app-page-head>
+
+<div class="page-body">
+  @if (loading()) {
+    <div class="loading">Yuklanmoqda…</div>
+  } @else if (!years().length && !draft()) {
+    <div class="card empty">
+      <div class="title">O'quv yili yo'q</div>
+      <p>Avval o'quv yilini, keyin choraklar va ta'tillarni qo'shing.</p>
+      @if (ctx.isAdmin()) { <button class="btn primary" type="button" (click)="openNew('year')"><app-icon name="plus" /> Yangi o'quv yili</button> }
+    </div>
+  } @else {
+    @if (timeline(); as t) {
+      <section class="card timeline-card">
+        <div class="tl-head">
+          <h2>O'quv yili</h2>
+          <span class="legend"><i class="term"></i>Chorak</span>
+          <span class="legend"><i class="break"></i>Ta'til</span>
+          <span class="legend"><i class="exam"></i>Imtihon davri</span>
+        </div>
+        <div class="months">
+          @for (m of t.months; track m.left) { <span [style.left.%]="m.left">{{ m.label }}</span> }
+        </div>
+        <div class="track">
+          @for (s of t.spans; track s.kind + s.start_date) {
+            <div class="span" [class]="'span ' + s.kind" [style.left.%]="s.left" [style.width.%]="s.width"
+                 [title]="s.name + ' · ' + rangeLabel(s.start_date, s.end_date)">{{ s.name }}</div>
+          }
+          @if (t.today !== null) {
+            <div class="today" [style.left.%]="t.today"><span>Bugun · {{ shortDate(today) }}</span></div>
+          }
+        </div>
+      </section>
+    }
+
+    <div class="layout-with-panel" [class.no-panel]="!draft()">
+      <div class="lists">
+        <section class="card list">
+          <div class="card-head">
+            <h2>Choraklar</h2>
+            @if (ctx.isAdmin() && year()) { <button class="btn sm" type="button" (click)="openNew('term')">+ Qo'shish</button> }
+          </div>
+          @for (t of yearTerms(); track t.id) {
+            <div class="item" [class.selected]="draft()?.kind === 'term' && draft()?.id === t.id">
+              <i class="sq term"></i><span class="name">{{ t.name }}</span>
+              <span class="range tnum">{{ rangeLabel(t.start_date, t.end_date) }}</span>
+              @if (ctx.isAdmin()) { <button class="btn icon sm" type="button" (click)="openEdit('term', t)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button> }
+            </div>
+          } @empty { <div class="none muted">Chorak yo'q</div> }
+        </section>
+
+        <div class="stack">
+          <section class="card list">
+            <div class="card-head">
+              <h2>Ta'tillar</h2>
+              @if (ctx.isAdmin() && year()) { <button class="btn sm" type="button" (click)="openNew('break')">+ Qo'shish</button> }
+            </div>
+            @for (b of yearBreaks(); track b.id) {
+              <div class="item" [class.selected]="draft()?.kind === 'break' && draft()?.id === b.id">
+                <i class="sq break"></i><span class="name">{{ b.name }}</span>
+                <span class="range tnum">{{ rangeLabel(b.start_date, b.end_date) }}</span>
+                @if (ctx.isAdmin()) { <button class="btn icon sm" type="button" (click)="openEdit('break', b)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button> }
+              </div>
+            } @empty { <div class="none muted">Ta'til yo'q</div> }
+          </section>
+
+          <section class="card list">
+            <div class="card-head">
+              <h2>Imtihon davrlari</h2>
+              @if (ctx.isAdmin() && year()) { <button class="btn sm" type="button" (click)="openNew('exam')">+ Qo'shish</button> }
+            </div>
+            @for (s of yearSessions(); track s.id) {
+              <div class="item" [class.selected]="draft()?.kind === 'exam' && draft()?.id === s.id">
+                <i class="sq exam"></i><span class="name">{{ s.name }}</span>
+                <span class="range tnum">{{ rangeLabel(s.start_date, s.end_date) }}</span>
+                @if (ctx.isAdmin()) { <button class="btn icon sm" type="button" (click)="openEdit('exam', s)" aria-label="Tahrirlash"><app-icon name="edit" [size]="15" /></button> }
+              </div>
+            } @empty { <div class="none muted">Imtihon davri yo'q</div> }
+          </section>
+        </div>
+      </div>
+
+      @if (draft(); as d) {
+        <aside class="card side-panel">
+          <div class="card-head">
+            <div>
+              <h2>{{ TITLE[d.kind] }}{{ d.id ? 'ni tahrirlash' : " qo'shish" }}</h2>
+              @if (d.id) { <div class="muted small">{{ d.name }}</div> }
+            </div>
+            <button class="btn icon" type="button" (click)="close()" aria-label="Yopish"><app-icon name="x" /></button>
+          </div>
+          <form class="card-body" (ngSubmit)="save()">
+            @if (errors()?.general; as g) { <div class="form-error">{{ g }}</div> }
+            <div class="field">
+              <label for="cn">Nomi</label>
+              <input id="cn" class="input" name="name" required [ngModel]="d.name" (ngModelChange)="patch({ name: $event })"
+                     [placeholder]="d.kind === 'year' ? '2026-2027' : d.kind === 'term' ? '1-chorak' : d.kind === 'break' ? 'Kuzgi ta\'til' : 'Yarim yillik imtihonlar'"
+                     [class.invalid]="!!errors()?.fields?.['name']" />
+              @if (errors()?.fields?.['name']; as m) { <div class="error">{{ m }}</div> }
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label for="cs">Boshlanish</label>
+                <input id="cs" class="input" name="start" type="date" required [ngModel]="d.start_date" (ngModelChange)="patch({ start_date: $event })" />
+              </div>
+              <div class="field">
+                <label for="ce">Tugash</label>
+                <input id="ce" class="input" name="end" type="date" required [ngModel]="d.end_date" (ngModelChange)="patch({ end_date: $event })" />
+              </div>
+            </div>
+            @if (d.kind === 'exam') {
+              <div class="field">
+                <label for="ck">Turi</label>
+                <select id="ck" class="input" name="kind" [ngModel]="d.exam_kind" (ngModelChange)="patch({ exam_kind: $event })">
+                  <option value="midterm">Semestr imtihoni</option>
+                  <option value="final">Yillik imtihon</option>
+                </select>
+              </div>
+            }
+            @if (overlap(); as o) {
+              <div class="note"><app-icon name="info" [size]="16" /> "{{ o.name }}" bilan sanalar kesishmoqda.</div>
+            } @else if (d.kind === 'term') {
+              <div class="note"><app-icon name="info" [size]="16" /> Sanalar boshqa chorak yoki ta'til bilan kesishmasligi kerak.</div>
+            } @else if (d.kind === 'exam') {
+              <div class="note"><app-icon name="info" [size]="16" /> Imtihon davrida darslar to'xtatiladi, planshetlarda imtihonlar ko'rinadi.</div>
+            }
+            <div class="buttons">
+              <button class="btn primary" type="submit" [disabled]="saving() || !d.name || !d.start_date || !d.end_date">Saqlash</button>
+              @if (d.id) {
+                <button class="btn danger" type="button" (click)="remove()">O'chirish</button>
+              } @else {
+                <button class="btn" type="button" (click)="close()">Bekor qilish</button>
+              }
+            </div>
+          </form>
+        </aside>
+      }
+    </div>
+  }
+</div>

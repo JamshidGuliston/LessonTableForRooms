@@ -1,0 +1,80 @@
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  .input { width: auto; background: var(--surface); }
+  .term { min-width: 240px; }
+  .entity { min-width: 140px; }
+}
+
+.layout-with-panel.no-panel { grid-template-columns: 1fr; }
+
+.grid-card { overflow-x: auto; }
+
+.tt {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 760px;
+
+  th {
+    text-align: left;
+    font-weight: 600;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+    &.today { color: var(--primary-text); }
+  }
+  td { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); padding: 6px; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .period-col { width: 130px; border-left: 0; padding: 10px 14px; }
+}
+
+.pname { font-size: 13px; &.strong { font-weight: 600; font-size: 14px; } }
+.ptime { color: var(--muted); font-size: 12px; }
+
+.break-row td { background: var(--surface-2); padding-top: 6px; padding-bottom: 6px; }
+.break-label {
+  color: var(--break-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  vertical-align: middle !important;
+  &.lunch { color: var(--lunch-text); }
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 52px;
+  text-align: left;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  font: inherit;
+  cursor: pointer;
+
+  .t { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t .dot { width: 8px; height: 8px; }
+  .s { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+  &.selected { border: 2px solid var(--primary); background: var(--primary-tint); padding: 6px 8px; }
+
+  &.add {
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    border-style: dashed;
+    border-color: transparent;
+    background: transparent;
+    font-size: 18px;
+    &:hover, &:focus-visible { color: var(--faint); border-color: var(--border); }
+    &.selected { color: var(--primary-text); border-style: solid; }
+  }
+}
+
+.small { font-size: 13px; margin-top: 2px; }
