@@ -178,7 +178,9 @@ export class TabletsPage {
   }
 
   protected adbCommand(r: Room) {
-    return `adb shell am start -n uz.darsjadval.tablet/.MainActivity --es server ${location.protocol}//${location.hostname}:8000 --es token ${r.device_token}`;
+    // ng serve (4200) da API Django runserver'da (8000); serverda — shu domenning o'zi
+    const server = location.port === '4200' ? `${location.protocol}//${location.hostname}:8000` : location.origin;
+    return `adb shell am start -n uz.darsjadval.tablet/.MainActivity --es server ${server} --es token ${r.device_token}`;
   }
 
   protected async copy(text: string) {
