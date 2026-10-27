@@ -4,8 +4,12 @@ Hostingda root yo'q (`sudo`, `apt`, nginx ishlatilmaydi). Django'ni cPanel'ning
 **Setup Python App** (Passenger) ishga tushiradi, Angular esa tayyor build sifatida
 shu domen papkasiga ko'chiriladi. Serverda Node.js kerak emas.
 
+Domen `timetable.gulistanps.uz` papkasiga yo'naltirilgan va u Python App root — sayt
+shu papkadan ochiladi. Manba kod va `.env` (parollar) esa atayin alohida `~/darsjadval`
+da turadi: domen papkasidagi har bir fayl internetdan ochilishi mumkin.
+
 ```
-~/darsjadval/                      git clone (kod, .env, db.sqlite3 — veb-papkadan tashqarida)
+~/darsjadval/                      git clone (kod, .env — veb-papkadan tashqarida)
 ~/timetable.gulistanps.uz/         domen papkasi = Python App root
     passenger_wsgi.py              → ~/darsjadval/backend ni yuklaydi
     .htaccess                      /api, /admin → Django; qolgani → index.html
@@ -18,11 +22,16 @@ shu domen papkasiga ko'chiriladi. Serverda Node.js kerak emas.
 
 Python App allaqachon yaratilgan (Python 3.13, root: `timetable.gulistanps.uz`, URL: `/`).
 
+**Baza (MySQL/MariaDB):** cPanel → **MySQL Databases** → yangi baza (masalan
+`gulistanps_timetable`) va foydalanuvchi yarating, foydalanuvchini bazaga **ALL PRIVILEGES**
+bilan qo'shing. Jadvallarni phpMyAdmin'da qo'lda yaratish shart emas — `migrate` o'zi yaratadi.
+Talab: MariaDB 10.6+ yoki MySQL 8.0+ (versiya phpMyAdmin bosh sahifasida "Server version").
+
 ```bash
 cd ~
 git clone https://github.com/JamshidGuliston/LessonTableForRooms.git darsjadval
 cp darsjadval/deploy/cpanel/env.example darsjadval/backend/.env
-nano darsjadval/backend/.env       # DJANGO_SECRET_KEY ni almashtiring
+nano darsjadval/backend/.env       # DJANGO_SECRET_KEY va DB_NAME / DB_USER / DB_PASSWORD
 bash darsjadval/deploy/cpanel/update.sh
 ```
 
@@ -65,6 +74,7 @@ bash ~/darsjadval/deploy/cpanel/update.sh
   yoki cPanel → Setup Python App → ilova → **Restart**.
 - Sahifa ochiladi, lekin API 400 qaytaradi: `.env` dagi `DJANGO_ALLOWED_HOSTS` ni tekshiring.
 - `/admin/` ga kirishda CSRF xatosi: `DJANGO_CSRF_TRUSTED_ORIGINS=https://timetable.gulistanps.uz`.
-- Zaxira: `cp ~/darsjadval/backend/db.sqlite3 ~/db-$(date +%F).sqlite3`
+- `Access denied for user`: foydalanuvchi bazaga qo'shilmagan yoki `DB_*` noto'g'ri.
+- Zaxira: phpMyAdmin → baza → **Export**, yoki cPanel → **Backup**.
 
 Planshetlar: Android ilovada server manzili `https://timetable.gulistanps.uz`.

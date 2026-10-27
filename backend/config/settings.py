@@ -83,12 +83,35 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+# Standart — SQLite. Hostingdagi MySQL/MariaDB uchun: DJANGO_DB_ENGINE=mysql va DB_* (deploy/cpanel/env.example).
+if os.environ.get('DJANGO_DB_ENGINE') == 'mysql':
+    # PyMySQL — sof Python drayver, hostingda kompilyatsiya talab qilmaydi.
+    import pymysql
+    pymysql.version_info = (2, 2, 1, 'final', 0)  # Django mysqlclient>=2.2.1 ni tekshiradi
+    pymysql.install_as_MySQLdb()
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ['DB_NAME'],
+            'USER': os.environ['DB_USER'],
+            'PASSWORD': os.environ['DB_PASSWORD'],
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation
