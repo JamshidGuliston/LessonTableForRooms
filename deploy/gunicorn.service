@@ -1,0 +1,17 @@
+# /etc/systemd/system/darsjadval.service
+[Unit]
+Description=Darsjadval Django API (gunicorn)
+After=network.target
+
+[Service]
+User=darsjadval
+Group=www-data
+WorkingDirectory=/srv/darsjadval/backend
+EnvironmentFile=/srv/darsjadval/backend/.env
+ExecStart=/srv/darsjadval/backend/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8001 --workers 3 --timeout 30 --access-logfile -
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

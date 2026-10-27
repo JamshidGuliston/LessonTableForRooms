@@ -20,11 +20,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%+h45@_d#%rtze3kvlw_oos$ej%)4kf6sum6k=&0_qqx94te$f'
+# Production'da hammasi muhit o'zgaruvchilaridan olinadi (deploy/env.example).
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("DJANGO_SECRET_KEY berilmagan (DJANGO_DEBUG=0 da majburiy)")
+    SECRET_KEY = 'django-insecure-%+h45@_d#%rtze3kvlw_oos$ej%)4kf6sum6k=&0_qqx94te$f'
 
 # Planshetlar serverga LAN IP orqali murojaat qiladi (masalan 192.168.1.10).
 # Production'da aniq ro'yxat bering: DJANGO_ALLOWED_HOSTS=192.168.1.10,maktab.uz
@@ -83,7 +86,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -123,20 +126,30 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT', BASE_DIR / 'staticfiles')
+
+# Nginx orqasida: https ekanini X-Forwarded-Proto dan bilamiz; admin login uchun CSRF manbalari
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+if not DEBUG:
+    SESSION_COOKIE_SECURE = os.environ.get('DJANGO_SECURE_COOKIES', '1') == '1'
+    CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# Loyiha hozircha xat yubormaydi; production'da Django standarti (SMTP) qoladi.
+if DEBUG:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
 
-# Angular dev server
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:4200',
+# Angular dev server. Production'da frontend va API bitta domenda — CORS kerak emas.
+CORS_ALLOWED_ORIGINS = ['http://localhost:4200'] + [
+    o for o in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',') if o
 ]
 
 REST_FRAMEWORK = {

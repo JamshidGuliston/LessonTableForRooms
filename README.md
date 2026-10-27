@@ -9,6 +9,7 @@ backend/   Django + Django REST Framework (API, Django admin)
 frontend/  Angular — maktab admin paneli (/s/<maktab>/...) va veb-planshet ekrani (/tablet/<token>)
 android/   Xona eshigidagi planshet uchun kiosk ilova (Kotlin + Compose) — android/README.md
 docs/      Dizayn (docs/design) va AI dizayn prompti
+deploy/    Serverga o'rnatish: nginx, gunicorn, systemd — deploy/README.md
 ```
 
 ## Ishga tushirish
