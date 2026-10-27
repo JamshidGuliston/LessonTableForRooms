@@ -22,17 +22,15 @@ va domen `.htaccess` idagi `RedirectMatch 404 ^/app`.
 
 Python App allaqachon yaratilgan (Python 3.13, root: `timetable.gulistanps.uz`, URL: `/`).
 
-**Baza (PostgreSQL):** cPanel → **PostgreSQL Databases** → yangi baza (masalan
-`gulistanps_timetable`) va foydalanuvchi yarating, foydalanuvchini bazaga qo'shing
-(**Add User to Database**). Jadvallarni qo'lda yaratish shart emas — `migrate` o'zi yaratadi.
-Talab: **PostgreSQL 15+** (Django 6.1). Versiya: `psql --version` yoki phpPgAdmin.
-MySQL ishlatilmaydi — Django 6.1 MySQL 8.4+ talab qiladi, hostingda 8.0.
+**Baza:** SQLite — `app/backend/db.sqlite3` (internetdan yopiq), alohida sozlash shart emas;
+jadvallarni `migrate` yaratadi. Hostingdagi MySQL 8.0 va PostgreSQL 13 Django 6.1 uchun eski
+(MySQL 8.4+, PostgreSQL 15+ kerak). PostgreSQL 15+ bo'lsa — `env.example` dagi `DB_*` qatorlarini yoqing.
 
 ```bash
 cd ~/timetable.gulistanps.uz
 git clone https://github.com/JamshidGuliston/LessonTableForRooms.git app
 cp app/deploy/cpanel/env.example app/backend/.env
-nano app/backend/.env              # DJANGO_SECRET_KEY va DB_NAME / DB_USER / DB_PASSWORD
+nano app/backend/.env              # DJANGO_SECRET_KEY ni yozing
 bash app/deploy/cpanel/update.sh
 ```
 
@@ -77,8 +75,7 @@ bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 - `.env` da qiymatlar qo'shtirnoqsiz yoziladi; parolda `)`, `$`, `#` bo'lishi mumkin.
 - Sahifa ochiladi, lekin API 400 qaytaradi: `.env` dagi `DJANGO_ALLOWED_HOSTS` ni tekshiring.
 - `/admin/` ga kirishda CSRF xatosi: `DJANGO_CSRF_TRUSTED_ORIGINS=https://timetable.gulistanps.uz`.
-- `password authentication failed` / `permission denied`: foydalanuvchi bazaga qo'shilmagan yoki `DB_*` noto'g'ri.
-- `PostgreSQL 15 or later is required`: hosting PostgreSQL'i eski — `.env` dan `DJANGO_DB_ENGINE` va `DB_*` ni o'chiring (SQLite).
-- Zaxira: cPanel → **Backup** (PostgreSQL bazasi) yoki `pg_dump`.
+- Zaxira: `cp ~/timetable.gulistanps.uz/app/backend/db.sqlite3 ~/db-$(date +%F).sqlite3`
+  (cPanel → Backup ham uy papkasi bilan birga saqlaydi).
 
 Planshetlar: Android ilovada server manzili `https://timetable.gulistanps.uz`.
