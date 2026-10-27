@@ -22,7 +22,7 @@ sudo -u darsjadval python3.13 -m venv backend/.venv
 sudo -u darsjadval cp deploy/env.example backend/.env
 sudo -u darsjadval nano backend/.env          # SECRET_KEY, domen/IP ni yozing
 sudo -u darsjadval deploy/update.sh            # pip, migrate, collectstatic, Angular build
-sudo -u darsjadval bash -c 'cd backend && set -a && . ./.env && .venv/bin/python manage.py createsuperuser'
+sudo -u darsjadval bash -c 'cd backend && .venv/bin/python manage.py createsuperuser'
 
 # Gunicorn xizmati
 sudo cp deploy/gunicorn.service /etc/systemd/system/darsjadval.service

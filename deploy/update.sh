@@ -6,7 +6,6 @@ git pull --ff-only
 
 cd backend
 .venv/bin/pip install -q -r requirements.txt
-set -a; . ./.env; set +a
 .venv/bin/python manage.py migrate --noinput
 .venv/bin/python manage.py collectstatic --noinput
 .venv/bin/python manage.py check --deploy --fail-level ERROR

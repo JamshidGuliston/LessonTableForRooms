@@ -41,7 +41,7 @@ SECRET_KEY yaratish:
 Admin (superuser) yaratish:
 
 ```bash
-cd ~/timetable.gulistanps.uz/app/backend && set -a && . ./.env && set +a
+cd ~/timetable.gulistanps.uz/app/backend
 ~/virtualenv/timetable.gulistanps.uz/3.13/bin/python manage.py createsuperuser
 ```
 
@@ -73,6 +73,7 @@ bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 
 - 500 / "Web application could not be started": `~/timetable.gulistanps.uz/stderr.log`
   yoki cPanel → Setup Python App → ilova → **Restart**.
+- `.env` da qiymatlar qo'shtirnoqsiz yoziladi; parolda `)`, `$`, `#` bo'lishi mumkin.
 - Sahifa ochiladi, lekin API 400 qaytaradi: `.env` dagi `DJANGO_ALLOWED_HOSTS` ni tekshiring.
 - `/admin/` ga kirishda CSRF xatosi: `DJANGO_CSRF_TRUSTED_ORIGINS=https://timetable.gulistanps.uz`.
 - `Access denied for user`: foydalanuvchi bazaga qo'shilmagan yoki `DB_*` noto'g'ri.

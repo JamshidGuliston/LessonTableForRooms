@@ -15,7 +15,6 @@ cd "$REPO/backend"
 [ -f .env ] || { echo "backend/.env yo'q — deploy/cpanel/env.example dan nusxa oling"; exit 1; }
 [ -f "$REPO/.htaccess" ] || { echo "$REPO/.htaccess yo'q — kod internetga ochiq qolardi"; exit 1; }
 "$PY" -m pip install -q -r requirements.txt
-set -a; . ./.env; set +a
 "$PY" manage.py migrate --noinput
 "$PY" manage.py collectstatic --noinput
 "$PY" manage.py check --deploy --fail-level ERROR
