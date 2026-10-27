@@ -7,8 +7,11 @@ REPO="${REPO:-$APP/app}"
 VENV="${VENV:-$HOME/virtualenv/timetable.gulistanps.uz/3.13}"
 PY="$VENV/bin/python"
 
-cd "$REPO"
-git pull --ff-only
+# git pull shu skriptni ham yangilashi mumkin — yangi versiyasini qaytadan ishga tushiramiz
+if [ "${1:-}" != "--pulled" ]; then
+    git -C "$REPO" pull --ff-only
+    exec bash "$REPO/deploy/cpanel/update.sh" --pulled
+fi
 
 echo "== Backend"
 cd "$REPO/backend"
