@@ -1,5 +1,7 @@
 # Serverga o'rnatish (Ubuntu/Debian + Nginx + Gunicorn)
 
+> **cPanel / shared hosting (sudo yo'q)** bo'lsa — [cpanel/README.md](cpanel/README.md). Quyidagi qo'llanma root huquqli VPS uchun.
+
 Tuzilma: Nginx 80-portda Angular fayllarini beradi, `/api/` va `/admin/` ni
 Gunicorn'ga (127.0.0.1:8001) uzatadi. Frontend va API bitta domenda, CORS kerak emas.
 

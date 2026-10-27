@@ -3,3 +3,5 @@
 *.service  text eol=lf
 *.conf     text eol=lf
 *.example  text eol=lf
+deploy/cpanel/www/** -diff linguist-generated
+*.py text eol=lf
