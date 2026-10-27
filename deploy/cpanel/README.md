@@ -22,10 +22,11 @@ va domen `.htaccess` idagi `RedirectMatch 404 ^/app`.
 
 Python App allaqachon yaratilgan (Python 3.13, root: `timetable.gulistanps.uz`, URL: `/`).
 
-**Baza (MySQL/MariaDB):** cPanel → **MySQL Databases** → yangi baza (masalan
-`gulistanps_timetable`) va foydalanuvchi yarating, foydalanuvchini bazaga **ALL PRIVILEGES**
-bilan qo'shing. Jadvallarni phpMyAdmin'da qo'lda yaratish shart emas — `migrate` o'zi yaratadi.
-Talab: MariaDB 10.6+ yoki MySQL 8.0+ (versiya phpMyAdmin bosh sahifasida "Server version").
+**Baza (PostgreSQL):** cPanel → **PostgreSQL Databases** → yangi baza (masalan
+`gulistanps_timetable`) va foydalanuvchi yarating, foydalanuvchini bazaga qo'shing
+(**Add User to Database**). Jadvallarni qo'lda yaratish shart emas — `migrate` o'zi yaratadi.
+Talab: **PostgreSQL 15+** (Django 6.1). Versiya: `psql --version` yoki phpPgAdmin.
+MySQL ishlatilmaydi — Django 6.1 MySQL 8.4+ talab qiladi, hostingda 8.0.
 
 ```bash
 cd ~/timetable.gulistanps.uz
@@ -76,7 +77,8 @@ bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 - `.env` da qiymatlar qo'shtirnoqsiz yoziladi; parolda `)`, `$`, `#` bo'lishi mumkin.
 - Sahifa ochiladi, lekin API 400 qaytaradi: `.env` dagi `DJANGO_ALLOWED_HOSTS` ni tekshiring.
 - `/admin/` ga kirishda CSRF xatosi: `DJANGO_CSRF_TRUSTED_ORIGINS=https://timetable.gulistanps.uz`.
-- `Access denied for user`: foydalanuvchi bazaga qo'shilmagan yoki `DB_*` noto'g'ri.
-- Zaxira: phpMyAdmin → baza → **Export**, yoki cPanel → **Backup**.
+- `password authentication failed` / `permission denied`: foydalanuvchi bazaga qo'shilmagan yoki `DB_*` noto'g'ri.
+- `PostgreSQL 15 or later is required`: hosting PostgreSQL'i eski — `.env` dan `DJANGO_DB_ENGINE` va `DB_*` ni o'chiring (SQLite).
+- Zaxira: cPanel → **Backup** (PostgreSQL bazasi) yoki `pg_dump`.
 
 Planshetlar: Android ilovada server manzili `https://timetable.gulistanps.uz`.
