@@ -271,3 +271,17 @@ class ExamConflictTests(APITestCase):
 
     def test_back_to_back_is_allowed(self):
         self.assertEqual(self.post(room=self.room.id, start_time='11:00', end_time='12:00').status_code, 201)
+
+
+class TokenLoginWithAdminSessionTests(APITestCase):
+    """Brauzerda Django admin seansi ochiq bo'lsa ham token bilan kirish ishlashi kerak."""
+
+    def test_login_works_while_logged_into_django_admin(self):
+        from rest_framework.test import APIClient
+        school = make_school('a')
+        make_admin(school, 'admin_a')
+        client = APIClient(enforce_csrf_checks=True)
+        client.login(username='admin_a', password='pass12345')  # /admin/ seansi
+        res = client.post('/api/auth/token/', {'username': 'admin_a', 'password': 'pass12345'}, format='json')
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertIn('token', res.data)

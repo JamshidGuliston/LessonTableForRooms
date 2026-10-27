@@ -1,5 +1,4 @@
 from django.urls import path, re_path
-from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework.routers import DefaultRouter
 
 from . import views
@@ -24,7 +23,7 @@ router.register(f'{SCHOOL}/members', views.MemberViewSet, basename='member')
 
 urlpatterns = [
     path('health/', views.health, name='health'),
-    path('auth/token/', obtain_auth_token, name='auth-token'),
+    path('auth/token/', views.TokenLoginView.as_view(), name='auth-token'),
     path('me/', views.me, name='me'),
     path('tablet/<str:token>/', views.TabletView.as_view(), name='tablet'),
     re_path(rf'^{SCHOOL}/dashboard/$', views.DashboardView.as_view(), name='dashboard'),

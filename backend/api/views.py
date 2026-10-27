@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.functional import cached_property
 from rest_framework import serializers, status, viewsets
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -40,6 +41,13 @@ def _parse_date(value, default):
         return date.fromisoformat(value)
     except ValueError:
         raise serializers.ValidationError({'date': 'Sana YYYY-MM-DD ko\'rinishida bo\'lishi kerak.'})
+
+
+class TokenLoginView(ObtainAuthToken):
+    """Login → token. Seans cookie'si e'tiborga olinmaydi: brauzerda /admin/ ochiq bo'lsa
+    SessionAuthentication CSRF talab qilib, 403 qaytarardi."""
+
+    authentication_classes = []
 
 
 @api_view(['GET'])

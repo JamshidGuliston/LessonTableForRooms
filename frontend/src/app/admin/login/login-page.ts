@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth';
+import { apiErrors } from '../../core/errors';
 
 @Component({
   selector: 'app-login-page',
@@ -67,7 +68,7 @@ export class LoginPage {
       this.error.set(
         e instanceof HttpErrorResponse && e.status === 400
           ? "Login yoki parol noto'g'ri"
-          : "Server bilan aloqa yo'q. Qayta urinib ko'ring.",
+          : (apiErrors(e).general ?? 'Kutilmagan xato.'),
       );
     } finally {
       this.busy.set(false);

@@ -118,7 +118,7 @@ Javob: maktab, xona, maktab vaqti bo'yicha `now`, va `day` — holat, yozuvlar r
 ## Testlar
 
 ```bash
-cd backend && python manage.py test api        # 79 test
+cd backend && python manage.py test api        # 80 test
 cd frontend && npm test                        # 23 test
 cd android && ./gradlew testDebugUnitTest      # 14 test
 ```
