@@ -125,6 +125,54 @@ class Room(SchoolOwnedModel):
             self.save(update_fields=['device_token'])
 
 
+class TabletPairing(models.Model):
+    """Planshetni kompyutersiz xonaga ulash.
+
+    Planshet (tokeni yo'q) kod so'raydi va ekranda ko'rsatadi; admin panelda shu kod
+    xonaga kiritiladi; planshet o'zining maxfiy `secret` i bilan so'rab, xona tokenini oladi.
+    Kod faqat ko'rsatish uchun — tokenni faqat `secret` egasi (planshetning o'zi) oladi.
+    """
+
+    TTL = timedelta(minutes=15)
+    CODE_LENGTH = 6
+    MAX_PENDING = 1000  # ochiq endpoint — bazani to'ldirib yuborishdan himoya
+
+    secret = models.CharField(max_length=64, unique=True)
+    code = models.CharField(max_length=CODE_LENGTH, db_index=True)
+    room = models.ForeignKey(Room, null=True, blank=True, on_delete=models.CASCADE, related_name='pairings')
+    created_at = models.DateTimeField(auto_now_add=True)
+    paired_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.code} → {self.room or "—"}'
+
+    @classmethod
+    def active(cls):
+        """Muddati o'tmaganlar: kutayotgan (kod ko'rsatilmoqda) yoki yaqinda ulangan."""
+        since = timezone.now() - cls.TTL
+        return cls.objects.filter(models.Q(paired_at__isnull=True, created_at__gte=since) | models.Q(paired_at__gte=since))
+
+    @classmethod
+    def pending(cls):
+        return cls.active().filter(paired_at__isnull=True)
+
+    @classmethod
+    def start(cls):
+        cls.objects.filter(created_at__lt=timezone.now() - 2 * cls.TTL).delete()
+        if cls.pending().count() >= cls.MAX_PENDING:
+            return None
+        busy = set(cls.pending().values_list('code', flat=True))
+        while True:
+            code = ''.join(secrets.choice('0123456789') for _ in range(cls.CODE_LENGTH))
+            if code not in busy:
+                return cls.objects.create(secret=secrets.token_urlsafe(32), code=code)
+
+    @property
+    def expires_in(self):
+        start = self.paired_at or self.created_at
+        return max(0, int((start + self.TTL - timezone.now()).total_seconds()))
+
+
 class Group(SchoolOwnedModel):
     """Sinf / guruh, masalan 7-A."""
 
@@ -223,49 +271,75 @@ class ExamSession(DateRangeModel):
 
 
 class Lesson(SchoolOwnedModel):
-    """Haftalik jadvaldagi bitta dars: chorak + hafta kuni + vaqt + xona."""
+    """Haftalik jadvaldagi bitta dars bloki: chorak + hafta kuni + vaqt.
+
+    Bir katakda bir nechta fan/guruh/o'qituvchi/xona bo'lishi mumkin — masalan
+    "11-01 / 11-02 · Phy/Chem/Eco" guruhlar fanlarga bo'linib, uch xonada birga o'tadi.
+    """
 
     term = models.ForeignKey(Term, on_delete=models.CASCADE, related_name='lessons')
     weekday = models.PositiveSmallIntegerField(choices=WEEKDAYS)
     period = models.ForeignKey(Period, on_delete=models.PROTECT, related_name='lessons')
-    room = models.ForeignKey(Room, on_delete=models.PROTECT, related_name='lessons')
-    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='lessons')
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='lessons')
-    teacher = models.ForeignKey(Teacher, on_delete=models.PROTECT, related_name='lessons')
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['term', 'weekday', 'period', 'room'], name='lesson_room_busy'),
-            models.UniqueConstraint(fields=['term', 'weekday', 'period', 'teacher'], name='lesson_teacher_busy'),
-            models.UniqueConstraint(fields=['term', 'weekday', 'period', 'group'], name='lesson_group_busy'),
-        ]
+    subjects = models.ManyToManyField(Subject, related_name='lessons')
+    groups = models.ManyToManyField(Group, related_name='lessons')
+    teachers = models.ManyToManyField(Teacher, related_name='lessons')
+    rooms = models.ManyToManyField(Room, related_name='lessons')
 
     def __str__(self):
-        return f'{self.get_weekday_display()} {self.period} {self.subject} ({self.group})'
+        return f'{self.get_weekday_display()} {self.period} {self.subject_names} ({self.group_names})'
+
+    # Ko'rsatish uchun: "Ms Shela / Davron". prefetch_related bilan qo'shimcha so'rovsiz.
+    @property
+    def subject_names(self):
+        return _names(self.subjects.all(), 'name')
+
+    @property
+    def group_names(self):
+        return _names(self.groups.all(), 'name')
+
+    @property
+    def teacher_names(self):
+        return _names(self.teachers.all(), 'full_name')
+
+    @property
+    def room_names(self):
+        return _names(self.rooms.all(), 'name')
 
     def clean(self):
         if self.period_id and self.period.kind != Period.Kind.LESSON:
             raise ValidationError({'period': 'Dars faqat dars vaqtiga qo\'yiladi, tanaffusga emas.'})
-        if not (self.term_id and self.period_id and self.weekday is not None):
-            return
-        # DB cheklovlari baribir himoya qiladi; bu yerda admin uchun aniq xabar beramiz.
+
+    @classmethod
+    def conflicts(cls, term, weekday, period, rooms, teachers, groups, exclude_pk=None):
+        """Shu vaqtdagi boshqa bloklar bilan kesishuv: {'room': xabar, ...}.
+
+        M2M saqlanishidan oldin tekshiriladi, shuning uchun clean() emas, alohida.
+        """
+        rooms, teachers, groups = ({o.pk for o in objs} for objs in (rooms, teachers, groups))
         same_slot = (
-            Lesson.objects.filter(term_id=self.term_id, weekday=self.weekday, period_id=self.period_id)
-            .exclude(pk=self.pk)
-            .select_related('subject', 'group', 'room', 'teacher')
+            cls.objects.filter(term=term, weekday=weekday, period=period)
+            .exclude(pk=exclude_pk)
+            .prefetch_related('subjects', 'groups', 'teachers', 'rooms')
         )
         errors = {}
         for other in same_slot:
-            if other.room_id == self.room_id:
-                errors.setdefault('room', f'Bu vaqtda {other.room}-xona band ({other.group} · {other.subject})')
-            if other.teacher_id == self.teacher_id:
-                errors.setdefault(
-                    'teacher', f'{other.teacher} bu vaqtda band ({other.group} · {other.subject} · {other.room}-xona)'
-                )
-            if other.group_id == self.group_id:
-                errors.setdefault('group', f'{other.group} guruhida bu vaqtda dars bor ({other.subject} · {other.room}-xona)')
-        if errors:
-            raise ValidationError(errors)
+            what = f'{other.group_names} · {other.subject_names}'
+            for room in other.rooms.all():
+                if room.pk in rooms:
+                    errors.setdefault('rooms', f'Bu vaqtda {room}-xona band ({what})')
+            for teacher in other.teachers.all():
+                if teacher.pk in teachers:
+                    errors.setdefault('teachers', f'{teacher} bu vaqtda band ({what} · {other.room_names}-xona)')
+            for group in other.groups.all():
+                if group.pk in groups:
+                    errors.setdefault(
+                        'groups', f'{group} guruhida bu vaqtda dars bor ({other.subject_names} · {other.room_names}-xona)'
+                    )
+        return errors
+
+
+def _names(objs, attr):
+    return ' / '.join(getattr(o, attr) for o in objs)
 
 
 class Exam(SchoolOwnedModel):
@@ -356,14 +430,14 @@ class ClubSession(SchoolOwnedModel):
         """Shu xonada, shu hafta kunida vaqti kesishadigan dars yoki to'garak."""
         lesson = (
             Lesson.objects.filter(
-                room_id=self.room_id, weekday=self.weekday, term__academic_year_id=self.academic_year_id,
+                rooms=self.room_id, weekday=self.weekday, term__academic_year_id=self.academic_year_id,
                 period__start_time__lt=self.end_time, period__end_time__gt=self.start_time,
             )
-            .select_related('subject', 'group', 'period')
+            .select_related('period')
             .first()
         )
         if lesson:
-            return f'{lesson.subject} ({lesson.group}) {lesson.period.start_time:%H:%M}-{lesson.period.end_time:%H:%M}'
+            return f'{lesson.subject_names} ({lesson.group_names}) {lesson.period.start_time:%H:%M}-{lesson.period.end_time:%H:%M}'
         other = (
             ClubSession.objects.filter(
                 room_id=self.room_id, weekday=self.weekday, academic_year_id=self.academic_year_id,

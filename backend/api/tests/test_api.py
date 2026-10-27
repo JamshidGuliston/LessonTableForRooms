@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
-from api.models import Group, Lesson, Room, SchoolMembership, Subject, Teacher
+from api.models import Group, Lesson, Room, SchoolMembership, Subject, Teacher, Term
 
 from .factories import (
     make_admin,
@@ -126,10 +126,10 @@ class LessonApiTests(APITestCase):
             'term': self.term.id,
             'weekday': 0,
             'period': self.periods[2].id,
-            'room': self.room.id,
-            'subject': self.lesson.subject_id,
-            'group': self.lesson.group_id,
-            'teacher': self.lesson.teacher_id,
+            'rooms': [self.room.id],
+            'subjects': [s.id for s in self.lesson.subjects.all()],
+            'groups': [g.id for g in self.lesson.groups.all()],
+            'teachers': [t.id for t in self.lesson.teachers.all()],
         }
         data.update(over)
         return data
@@ -151,13 +151,13 @@ class LessonApiTests(APITestCase):
     def test_related_object_from_other_school_is_rejected(self):
         other = make_school('b')
         foreign_room = make_room(other, 'Z')
-        res = self.client.post('/api/schools/a/lessons/', self.payload(room=foreign_room.id))
+        res = self.client.post('/api/schools/a/lessons/', self.payload(rooms=[foreign_room.id]))
         self.assertEqual(res.status_code, 400)
-        self.assertIn('room', res.data)
+        self.assertIn('rooms', res.data)
 
     def test_list_filters_by_group_and_weekday(self):
         make_lesson(self.school, self.term, self.room, self.periods[2], weekday=1, group_name='8-B')
-        res = self.client.get('/api/schools/a/lessons/', {'group': self.lesson.group_id})
+        res = self.client.get('/api/schools/a/lessons/', {'group': self.lesson.groups.get().id})
         self.assertEqual(len(res.data), 1)
         res = self.client.get('/api/schools/a/lessons/', {'weekday': 1})
         self.assertEqual(len(res.data), 1)
@@ -214,26 +214,28 @@ class LessonConflictMessageTests(APITestCase):
         self.other_teacher = Teacher.objects.create(school=self.school, full_name='Aliyev A.')
 
     def post(self, **over):
-        data = {'term': self.term.id, 'weekday': 0, 'period': self.periods[0].id, 'room': self.other_room.id,
-                'subject': self.busy.subject_id, 'group': self.other_group.id, 'teacher': self.other_teacher.id}
+        data = {'term': self.term.id, 'weekday': 0, 'period': self.periods[0].id, 'rooms': [self.other_room.id],
+                'subjects': [self.busy.subjects.get().id], 'groups': [self.other_group.id],
+                'teachers': [self.other_teacher.id]}
         data.update(over)
-        return self.client.post('/api/schools/a/lessons/', data)
+        return self.client.post('/api/schools/a/lessons/', data, format='json')
 
     def test_room_conflict_names_room_group_and_subject(self):
-        res = self.post(room=self.room.id)
+        res = self.post(rooms=[self.room.id])
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data['room'][0], 'Bu vaqtda 101-xona band (8-B · Fizika)')
+        self.assertEqual(res.data['rooms'][0], 'Bu vaqtda 101-xona band (8-B · Fizika)')
 
     def test_teacher_conflict(self):
-        res = self.post(teacher=self.busy.teacher_id)
-        self.assertEqual(res.data['teacher'][0], "Karimov B. bu vaqtda band (8-B · Fizika · 101-xona)")
+        res = self.post(teachers=[self.other_teacher.id, self.busy.teachers.get().id])
+        self.assertEqual(res.data['teachers'][0], "Karimov B. bu vaqtda band (8-B · Fizika · 101-xona)")
 
     def test_group_conflict(self):
-        res = self.post(group=self.busy.group_id)
-        self.assertEqual(res.data['group'][0], "8-B guruhida bu vaqtda dars bor (Fizika · 101-xona)")
+        res = self.post(groups=[self.busy.groups.get().id])
+        self.assertEqual(res.data['groups'][0], "8-B guruhida bu vaqtda dars bor (Fizika · 101-xona)")
 
     def test_editing_lesson_does_not_conflict_with_itself(self):
-        res = self.client.patch(f'/api/schools/a/lessons/{self.busy.id}/', {'subject': self.busy.subject_id})
+        res = self.client.patch(f'/api/schools/a/lessons/{self.busy.id}/', {'subjects': [self.busy.subjects.get().id]},
+                                format='json')
         self.assertEqual(res.status_code, 200, res.data)
 
 
@@ -285,3 +287,70 @@ class TokenLoginWithAdminSessionTests(APITestCase):
         res = client.post('/api/auth/token/', {'username': 'admin_a', 'password': 'pass12345'}, format='json')
         self.assertEqual(res.status_code, 200, res.data)
         self.assertIn('token', res.data)
+
+
+class MultiValueLessonTests(APITestCase):
+    """Bir katakda bir nechta fan/guruh/o'qituvchi/xona: "11-01 / 11-02 · Phy/Chem · 201, 203"."""
+
+    def setUp(self):
+        self.school = make_school('a')
+        self.client.force_authenticate(make_admin(self.school))
+        _, self.term, _ = make_calendar(self.school)
+        self.periods = make_periods(self.school)
+        self.r201, self.r203 = make_room(self.school, '201'), make_room(self.school, '203')
+        self.phy = Subject.objects.create(school=self.school, name='Physics')
+        self.chem = Subject.objects.create(school=self.school, name='Chemistry')
+        self.g1 = Group.objects.create(school=self.school, name='11-01')
+        self.g2 = Group.objects.create(school=self.school, name='11-02')
+        self.t1 = Teacher.objects.create(school=self.school, full_name='Mr Xurshid')
+        self.t2 = Teacher.objects.create(school=self.school, full_name='Mr Xamza')
+        res = self.client.post('/api/schools/a/lessons/', {
+            'term': self.term.id, 'weekday': 0, 'period': self.periods[0].id,
+            'subjects': [self.phy.id, self.chem.id], 'groups': [self.g1.id, self.g2.id],
+            'teachers': [self.t1.id, self.t2.id], 'rooms': [self.r201.id, self.r203.id],
+        }, format='json')
+        self.assertEqual(res.status_code, 201, res.data)
+        self.lesson = res.data
+
+    def test_names_are_joined_with_slash(self):
+        self.assertEqual(self.lesson['group_name'], '11-01 / 11-02')
+        self.assertEqual(self.lesson['teacher_name'], 'Mr Xamza / Mr Xurshid')
+
+    def test_block_shows_on_every_room_tablet(self):
+        for room in (self.r201, self.r203):
+            res = self.client.get(f'/api/tablet/{room.device_token}/', {'date': '2025-10-20'})
+            entry = res.data['day']['entries'][0]
+            self.assertEqual(entry['title'], 'Chemistry / Physics')
+            self.assertEqual(entry['group'], '11-01 / 11-02')
+
+    def test_filter_by_room_finds_block_once(self):
+        res = self.client.get('/api/schools/a/lessons/', {'room': self.r203.id})
+        self.assertEqual([l['id'] for l in res.data], [self.lesson['id']])
+
+    def test_teacher_shared_with_other_block_conflicts(self):
+        r101 = make_room(self.school, '101')
+        res = self.client.post('/api/schools/a/lessons/', {
+            'term': self.term.id, 'weekday': 0, 'period': self.periods[0].id, 'subjects': [self.phy.id],
+            'groups': [Group.objects.create(school=self.school, name='9-01').id],
+            'teachers': [self.t2.id], 'rooms': [r101.id],
+        }, format='json')
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data['teachers'][0], 'Mr Xamza bu vaqtda band (11-01 / 11-02 · Chemistry / Physics · 201 / 203-xona)')
+
+    def test_empty_list_is_rejected(self):
+        res = self.client.patch(f"/api/schools/a/lessons/{self.lesson['id']}/", {'teachers': []}, format='json')
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('teachers', res.data)
+
+    def test_teacher_used_in_lesson_cannot_be_deleted(self):
+        res = self.client.delete(f'/api/schools/a/teachers/{self.t1.id}/')
+        self.assertEqual(res.status_code, 400)
+        self.assertTrue(Teacher.objects.filter(pk=self.t1.pk).exists())
+
+    def test_copy_keeps_all_values(self):
+        term2 = Term.objects.create(school=self.school, academic_year=self.term.academic_year, name='2-chorak',
+                                    start_date=self.term.end_date, end_date=self.term.end_date)
+        self.client.post('/api/schools/a/lessons/copy/', {'from_term': self.term.id, 'to_term': term2.id})
+        copy = Lesson.objects.get(term=term2)
+        self.assertEqual(copy.room_names, '201 / 203')
+        self.assertEqual(copy.teachers.count(), 2)

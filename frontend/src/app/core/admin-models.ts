@@ -50,10 +50,12 @@ export interface Lesson {
   term: number;
   weekday: number;
   period: number;
-  room: number;
-  subject: number;
-  group: number;
-  teacher: number;
+  /** Bir katakda bir nechta bo'lishi mumkin: "11-01 / 11-02" */
+  rooms: number[];
+  subjects: number[];
+  groups: number[];
+  teachers: number[];
+  /** Nomlar " / " bilan birlashtirilgan */
   subject_name: string;
   group_name: string;
   teacher_name: string;

@@ -142,10 +142,11 @@ class Command(BaseCommand):
                 room = rooms[gi]
                 for pi, period in enumerate(periods[:5]):
                     si = (gi + pi + weekday) % len(subjects)
-                    Lesson.objects.create(
-                        school=school, term=term, weekday=weekday, period=period,
-                        room=room, subject=subjects[si], group=group, teacher=teachers[si],
-                    )
+                    lesson = Lesson.objects.create(school=school, term=term, weekday=weekday, period=period)
+                    lesson.rooms.set([room])
+                    lesson.subjects.set([subjects[si]])
+                    lesson.groups.set([group])
+                    lesson.teachers.set([teachers[si]])
 
     def _clubs(self, school, year, teachers, rooms):
         """Har to'garak o'z xonasida, darslardan keyin."""

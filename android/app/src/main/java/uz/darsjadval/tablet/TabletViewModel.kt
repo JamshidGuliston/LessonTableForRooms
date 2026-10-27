@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import uz.darsjadval.tablet.data.PairStatus
+import uz.darsjadval.tablet.data.PairingExpiredException
 import uz.darsjadval.tablet.data.TabletApi
 import uz.darsjadval.tablet.data.TabletConfig
 import uz.darsjadval.tablet.data.TabletData
@@ -30,6 +32,8 @@ data class UiState(
     val problem: Problem? = null,
     /** Oxirgi muvaffaqiyatli yangilanish (maktab vaqti bo'yicha) */
     val lastUpdated: LocalTime? = null,
+    /** Ekrandagi ulash kodi (planshet xonaga biriktirilmagan yoki tokeni rad etilgan bo'lsa) */
+    val pairCode: String? = null,
 )
 
 class TabletViewModel(app: Application) : AndroidViewModel(app) {
@@ -42,6 +46,7 @@ class TabletViewModel(app: Application) : AndroidViewModel(app) {
     private var anchorServer: LocalDateTime? = null
     private var anchorElapsed = 0L
     private var pollJob: Job? = null
+    private var pairJob: Job? = null
     private var rolloverRequested: java.time.LocalDate? = null
 
     init {
@@ -57,7 +62,10 @@ class TabletViewModel(app: Application) : AndroidViewModel(app) {
     fun reloadConfig() {
         _state.update { UiState(TabletConfig.load(getApplication())) }
         anchorServer = null
+        pairJob?.cancel() // server o'zgargan bo'lishi mumkin
+        pairJob = null
         restartPolling()
+        updatePairing()
     }
 
     private fun restartPolling() {
@@ -71,7 +79,9 @@ class TabletViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Bitta so'rov; keyingi so'rovgacha kutish vaqtini qaytaradi. */
-    private suspend fun poll(): Long {
+    private suspend fun poll(): Long = pollOnce().also { updatePairing() }
+
+    private suspend fun pollOnce(): Long {
         val config = _state.value.config
         if (!config.isComplete) {
             _state.update { it.copy(problem = Problem.NOT_CONFIGURED) }
@@ -96,6 +106,55 @@ class TabletViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Token yo'q yoki rad etilgan bo'lsa — ekranda kod ko'rsatib, admin uni xonaga bog'lashini kutamiz.
+     * Rad etilgan eski token bilan so'rash ham davom etadi: u qayta ishlasa, ulash to'xtaydi.
+     */
+    private fun updatePairing() {
+        val s = _state.value
+        val needed = s.config.server.isNotBlank() && (s.config.token.isBlank() || s.problem == Problem.TOKEN_REJECTED)
+        if (needed) {
+            if (pairJob?.isActive != true) pairJob = viewModelScope.launch { pairLoop(s.config.server) }
+        } else if (pairJob != null) {
+            pairJob?.cancel()
+            pairJob = null
+            _state.update { it.copy(pairCode = null) }
+        }
+    }
+
+    private suspend fun pairLoop(server: String) {
+        while (true) {
+            val start = try {
+                TabletApi.pairStart(server)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(pairCode = null) }
+                delay(RETRY_MS)
+                continue
+            }
+            _state.update { it.copy(pairCode = start.code) }
+            while (true) {
+                delay(PAIR_POLL_MS)
+                val status = try {
+                    TabletApi.pairStatus(server, start.secret)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: PairingExpiredException) {
+                    break // yangi kod
+                } catch (e: Exception) {
+                    continue
+                }
+                if (status is PairStatus.Paired) {
+                    TabletConfig.update(getApplication(), server = null, token = status.token)
+                    pairJob = null
+                    reloadConfig()
+                    return
+                }
+            }
+        }
+    }
+
     private fun tick() {
         val anchor = anchorServer ?: return
         val now = anchor.plusNanos((SystemClock.elapsedRealtime() - anchorElapsed) * 1_000_000)
@@ -112,5 +171,6 @@ class TabletViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val POLL_MS = 30_000L
         const val RETRY_MS = 10_000L
+        const val PAIR_POLL_MS = 3_000L
     }
 }

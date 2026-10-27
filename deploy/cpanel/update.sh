@@ -25,6 +25,8 @@ cd "$REPO/backend"
 echo "== Frontend (tayyor build: deploy/cpanel/www)"
 find "$APP" -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' \) -delete
 cp -r "$REPO/deploy/cpanel/www/." "$APP/"
+# Planshet ilovasi: https://<domen>/tablet.apk (planshet brauzeridan yuklab olinadi)
+cp "$REPO/deploy/cpanel/tablet.apk" "$APP/tablet.apk"
 
 echo "== Passenger"
 cp "$REPO/deploy/cpanel/passenger_wsgi.py" "$APP/passenger_wsgi.py"

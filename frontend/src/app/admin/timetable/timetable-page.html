@@ -63,7 +63,7 @@
                       @if (cell.lesson; as l) {
                         <button type="button" class="chip" [class.selected]="draft()?.id === l.id" (click)="openEdit(l)"
                                 [title]="l.subject_name + ' · ' + l.group_name + ' · ' + l.teacher_name + ' · ' + l.room_name">
-                          <span class="t"><span class="dot" [style.background]="colorBySubject().get(l.subject) || null"></span>{{ lines(l).title }}</span>
+                          <span class="t"><span class="dot" [style.background]="colorBySubject().get(l.subjects[0]) || null"></span>{{ lines(l).title }}</span>
                           <span class="s">{{ lines(l).sub }}</span>
                         </button>
                       } @else if (ctx.isAdmin()) {
@@ -108,41 +108,31 @@
             </div>
             @if (errors()?.fields?.['period']; as m) { <div class="field"><div class="error">{{ m }}</div></div> }
 
-            <div class="field">
-              <label for="sb">Fan</label>
-              <select id="sb" class="input" name="subject" [ngModel]="d.subject" (ngModelChange)="patch({ subject: $event })" [class.invalid]="!!errors()?.fields?.['subject']" required>
-                <option [ngValue]="null" disabled>Tanlang</option>
-                @for (s of subjects(); track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
-              </select>
-              @if (errors()?.fields?.['subject']; as m) { <div class="error">{{ m }}</div> }
-            </div>
-            <div class="field">
-              <label for="tc">O'qituvchi</label>
-              <select id="tc" class="input" name="teacher" [ngModel]="d.teacher" (ngModelChange)="patch({ teacher: $event })" [class.invalid]="!!errors()?.fields?.['teacher']" required>
-                <option [ngValue]="null" disabled>Tanlang</option>
-                @for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.full_name }}</option> }
-              </select>
-              @if (errors()?.fields?.['teacher']; as m) { <div class="error">{{ m }}</div> }
-            </div>
-            <div class="field">
-              <label for="rm">Xona</label>
-              <select id="rm" class="input" name="room" [ngModel]="d.room" (ngModelChange)="patch({ room: $event })" [class.invalid]="!!errors()?.fields?.['room']" required>
-                <option [ngValue]="null" disabled>Tanlang</option>
-                @for (r of rooms(); track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
-              </select>
-              @if (errors()?.fields?.['room']; as m) { <div class="error"><app-icon name="alert" [size]="15" /> {{ m }}</div> }
-            </div>
-            <div class="field">
-              <label for="gr">Guruh</label>
-              <select id="gr" class="input" name="group" [ngModel]="d.group" (ngModelChange)="patch({ group: $event })" [class.invalid]="!!errors()?.fields?.['group']" required>
-                <option [ngValue]="null" disabled>Tanlang</option>
-                @for (g of groups(); track g.id) { <option [ngValue]="g.id">{{ g.name }}</option> }
-              </select>
-              @if (errors()?.fields?.['group']; as m) { <div class="error">{{ m }}</div> }
-            </div>
+            @for (p of pickers(); track p.key) {
+              <div class="field">
+                <label [for]="'pk-' + p.key">{{ p.label }}</label>
+                @if (d[p.key].length) {
+                  <div class="picked">
+                    @for (id of d[p.key]; track id) {
+                      <span class="pill">
+                        {{ nameOf().get(p.key)?.get(id) }}
+                        <button type="button" (click)="unpick(p.key, id)" aria-label="Olib tashlash"><app-icon name="x" [size]="12" /></button>
+                      </span>
+                    }
+                  </div>
+                }
+                <select #sel [id]="'pk-' + p.key" class="input" (change)="pick(p.key, sel)" [class.invalid]="!!errors()?.fields?.[p.key]">
+                  <option value="">{{ d[p.key].length ? "+ Yana qo'shish" : 'Tanlang' }}</option>
+                  @for (o of p.options; track o.id) {
+                    @if (!d[p.key].includes(o.id)) { <option [value]="o.id">{{ o.name }}</option> }
+                  }
+                </select>
+                @if (errors()?.fields?.[p.key]; as m) { <div class="error"><app-icon name="alert" [size]="15" /> {{ m }}</div> }
+              </div>
+            }
 
             <div class="buttons">
-              <button class="btn primary" type="submit" [disabled]="saving() || !d.subject || !d.teacher || !d.room || !d.group">Saqlash</button>
+              <button class="btn primary" type="submit" [disabled]="saving() || !draftComplete()">Saqlash</button>
               @if (d.id) {
                 <button class="btn danger" type="button" (click)="remove()" [disabled]="saving()">O'chirish</button>
               } @else {

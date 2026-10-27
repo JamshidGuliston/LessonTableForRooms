@@ -33,7 +33,23 @@ Talab: JDK 17+, Android SDK (platform 35). Maktab uchun server manzilini APK ich
 ./gradlew assembleRelease -PdefaultServer=http://192.168.1.10:8000
 ```
 
-## Planshetga o'rnatish (bir marta, USB/adb orqali)
+## Planshetga o'rnatish — kompyutersiz (tavsiya)
+
+Kerak: planshetga ulanadigan **USB sichqoncha** (OTG adapter orqali; sensorsiz ekran uchun) va Wi-Fi.
+APK maktab serveri manzili bilan yig'ilgan bo'lishi kerak:
+`./gradlew assembleRelease -PdefaultServer=https://timetable.gulistanps.uz` → `deploy/cpanel/tablet.apk`.
+
+1. Sichqoncha bilan: *Settings → Wi-Fi* — maktab tarmog'i; *Settings → Security → Unknown sources* — yoqing.
+2. Planshet brauzerida `https://<domen>/tablet.apk` ni oching → yuklab olingach o'rnating → **Open**.
+3. Ekranda **6 xonali ulash kodi** chiqadi. Admin panel → **Planshetlar** → xona → **Ulash** →
+   kodni kiriting. 3–5 soniyada planshet shu xonaning jadvaliga o'tadi.
+4. Sichqonchani olib, planshetni qayta yoqib ko'ring — jadval o'zi chiqishi kerak.
+
+Kod 15 daqiqa amal qiladi, keyin o'zi yangilanadi. Admin "Tokenni yangilash" bossa, planshet
+ekranida yana kod chiqadi — qayta kiritiladi (kompyuter kerak emas). Kompyutersiz o'rnatishda
+pastki navigatsiya paneli ko'rinib turadi (to'liq yashirish uchun quyidagi `pm grant` — adb kerak).
+
+## Planshetga o'rnatish — kompyuter orqali (USB/adb, ixtiyoriy)
 
 1. Planshetda *Settings → About tablet → Build number* ni 7 marta bosib, *Developer options → USB debugging* ni yoqing.
 2. Kompyuterdan:

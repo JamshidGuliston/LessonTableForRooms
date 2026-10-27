@@ -24,6 +24,7 @@ from .models import (
     Lesson,
     Period,
     Room,
+    TabletPairing,
     School,
     SchoolMembership,
     Subject,
@@ -94,6 +95,37 @@ class TabletView(APIView):
             'now': now.isoformat(timespec='seconds'),
             'day': room_day(room, day, now=now),
         })
+
+
+class TabletPairStartView(APIView):
+    """Tokeni yo'q planshet: POST /api/tablet/pair/ → {secret, code, expires_in}.
+    Planshet `code` ni ekranda ko'rsatadi, `secret` ni o'zida saqlaydi."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        pairing = TabletPairing.start()
+        if pairing is None:
+            return Response({'detail': "Juda ko'p so'rov. Keyinroq urinib ko'ring."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'secret': pairing.secret, 'code': pairing.code, 'expires_in': pairing.expires_in},
+                        status=status.HTTP_201_CREATED)
+
+
+class TabletPairStatusView(APIView):
+    """GET /api/tablet/pair/<secret>/ → {status: pending, code} yoki {status: paired, token, room}.
+    404 — muddati o'tgan: planshet yangi kod so'raydi."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, secret):
+        pairing = get_object_or_404(TabletPairing.active().select_related('room'), secret=secret)
+        if pairing.room is None:
+            return Response({'status': 'pending', 'code': pairing.code, 'expires_in': pairing.expires_in})
+        return Response({'status': 'paired', 'token': pairing.room.device_token,
+                         'room': {'id': pairing.room.id, 'name': pairing.room.name}})
 
 
 class SchoolMixin:
@@ -207,6 +239,7 @@ class SchoolScopedViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsSchoolMember]
     filter_params = ()
+    filter_lookups = {}
 
     @cached_property
     def school(self):
@@ -220,8 +253,8 @@ class SchoolScopedViewSet(viewsets.ModelViewSet):
         for name in self.filter_params:
             value = self.request.query_params.get(name)
             if value not in (None, ''):
-                qs = qs.filter(**{name: value})
-        return qs
+                qs = qs.filter(**{self.filter_lookups.get(name, name): value})
+        return qs.distinct() if self.filter_lookups else qs
 
     def get_serializer_context(self):
         return {**super().get_serializer_context(), 'school': self.school}
@@ -231,6 +264,11 @@ class SchoolScopedViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         # Jadvalda ishlatilayotgan xona/fan/o'qituvchi PROTECT bilan himoyalangan — 500 emas, 400.
+        # Dars bloklari M2M (PROTECT yo'q) — ularni alohida tekshiramiz.
+        if isinstance(instance, (Subject, Teacher, Room)) and instance.lessons.exists():
+            raise serializers.ValidationError(
+                f'"{instance}" jadvalda ishlatilmoqda (dars). Avval u yerdan olib tashlang.'
+            )
         try:
             instance.delete()
         except ProtectedError as exc:
@@ -292,6 +330,19 @@ class RoomViewSet(SchoolScopedViewSet):
         room.rotate_token()
         return Response(self.get_serializer(room).data)
 
+    @action(detail=True, methods=['post'])
+    def pair(self, request, **kwargs):
+        """Planshet ekranidagi kodni shu xonaga bog'laydi: {code: "123456"}."""
+        room = self.get_object()
+        code = ''.join(ch for ch in str(request.data.get('code', '')) if ch.isdigit())
+        pairing = TabletPairing.pending().filter(code=code).order_by('-created_at').first() if code else None
+        if pairing is None:
+            raise serializers.ValidationError({'code': "Kod topilmadi yoki muddati o'tgan. Planshet ekranidagi kodni tekshiring."})
+        pairing.room = room
+        pairing.paired_at = timezone.now()
+        pairing.save(update_fields=['room', 'paired_at'])
+        return Response(self.get_serializer(room).data)
+
     @action(detail=True, methods=['get'])
     def day(self, request, **kwargs):
         """Admin panel uchun: xonaning istalgan kundagi jadvali."""
@@ -302,9 +353,11 @@ class RoomViewSet(SchoolScopedViewSet):
 
 
 class LessonViewSet(SchoolScopedViewSet):
-    queryset = Lesson.objects.select_related('period', 'subject', 'group', 'teacher', 'room')
+    queryset = Lesson.objects.select_related('period').prefetch_related('subjects', 'groups', 'teachers', 'rooms')
     serializer_class = ser.LessonSerializer
     filter_params = ('term', 'weekday', 'room', 'group', 'teacher', 'subject')
+    # ?room=5 — M2M bo'yicha: shu xona qatnashgan bloklar
+    filter_lookups = {'room': 'rooms', 'group': 'groups', 'teacher': 'teachers', 'subject': 'subjects'}
 
     @action(detail=False, methods=['post'])
     def copy(self, request, **kwargs):
@@ -319,13 +372,16 @@ class LessonViewSet(SchoolScopedViewSet):
             raise serializers.ValidationError("Bir xil chorakka nusxalab bo'lmaydi.")
         if Lesson.objects.filter(term=target).exists():
             raise serializers.ValidationError(f'"{target.name}" jadvali bo\'sh emas.')
-        fields = ('school_id', 'weekday', 'period_id', 'room_id', 'subject_id', 'group_id', 'teacher_id')
+        copied = 0
         with transaction.atomic():
-            created = Lesson.objects.bulk_create([
-                Lesson(term=target, **{f: getattr(lesson, f) for f in fields})
-                for lesson in Lesson.objects.filter(term=source)
-            ])
-        return Response({'copied': len(created)}, status=status.HTTP_201_CREATED)
+            for lesson in Lesson.objects.filter(term=source).prefetch_related(*ser.LessonSerializer.M2M):
+                copy = Lesson.objects.create(
+                    school_id=lesson.school_id, term=target, weekday=lesson.weekday, period_id=lesson.period_id,
+                )
+                for name in ser.LessonSerializer.M2M:
+                    getattr(copy, name).set(getattr(lesson, name).all())
+                copied += 1
+        return Response({'copied': copied}, status=status.HTTP_201_CREATED)
 
 
 class ClubViewSet(SchoolScopedViewSet):

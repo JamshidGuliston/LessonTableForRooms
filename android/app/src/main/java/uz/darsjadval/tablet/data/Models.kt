@@ -39,3 +39,11 @@ data class TabletData(
     val serverNow: LocalDateTime,
     val day: RoomDay,
 )
+
+/** Kompyutersiz ulash: ekranda `code`, tokenni faqat `secret` bilan olamiz. */
+data class PairStart(val secret: String, val code: String)
+
+sealed interface PairStatus {
+    data class Pending(val code: String) : PairStatus
+    data class Paired(val token: String) : PairStatus
+}

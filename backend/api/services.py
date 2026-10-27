@@ -96,8 +96,9 @@ def _next_working_day(school, after):
 
 def _room_lessons(room, term, day):
     return (
-        Lesson.objects.filter(room=room, term=term, weekday=day.weekday())
-        .select_related('period', 'subject', 'group', 'teacher')
+        Lesson.objects.filter(rooms=room, term=term, weekday=day.weekday())
+        .select_related('period')
+        .prefetch_related('subjects', 'groups', 'teachers')
     )
 
 
@@ -139,12 +140,12 @@ def _entry(kind, title, start, end, **extra):
 def _lesson_entry(lesson):
     return _entry(
         'lesson',
-        lesson.subject.name,
+        lesson.subject_names,
         lesson.period.start_time,
         lesson.period.end_time,
-        group=lesson.group.name,
-        teacher=lesson.teacher.full_name,
-        subject_color=lesson.subject.color or None,
+        group=lesson.group_names,
+        teacher=lesson.teacher_names,
+        subject_color=next((s.color for s in lesson.subjects.all() if s.color), None),
     )
 
 

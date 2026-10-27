@@ -5,3 +5,4 @@
 *.example  text eol=lf
 deploy/cpanel/www/** -diff linguist-generated
 *.py text eol=lf
+deploy/cpanel/tablet.apk binary

@@ -5,6 +5,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import uz.darsjadval.tablet.data.DayStatus
 import uz.darsjadval.tablet.data.EntryKind
+import uz.darsjadval.tablet.data.PairStart
+import uz.darsjadval.tablet.data.PairStatus
 import uz.darsjadval.tablet.data.TabletJson
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -88,5 +90,21 @@ class TabletJsonTest {
         assertEquals(DayStatus.LESSON, day.status)
         assertEquals(EntryKind.LESSON, day.entries[0].kind)
         assertNull(day.resumesOn)
+    }
+
+    @Test
+    fun parsesPairing() {
+        assertEquals(
+            PairStart(secret = "s3cr3t", code = "482913"),
+            TabletJson.parsePairStart("""{"secret": "s3cr3t", "code": "482913", "expires_in": 900}"""),
+        )
+        assertEquals(
+            PairStatus.Pending("482913"),
+            TabletJson.parsePairStatus("""{"status": "pending", "code": "482913", "expires_in": 880}"""),
+        )
+        assertEquals(
+            PairStatus.Paired("TOKEN"),
+            TabletJson.parsePairStatus("""{"status": "paired", "token": "TOKEN", "room": {"id": 1, "name": "104"}}"""),
+        )
     }
 }

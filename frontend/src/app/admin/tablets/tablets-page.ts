@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { Room, TabletStatus } from '../../core/admin-models';
@@ -16,7 +17,7 @@ const STATUS: Record<TabletStatus, string> = { online: 'Onlayn', offline: 'Oflay
 
 @Component({
   selector: 'app-tablets-page',
-  imports: [PageHead, Icon, Qr],
+  imports: [PageHead, Icon, Qr, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-head title="Planshetlar" [sub]="summary()" />
@@ -38,7 +39,7 @@ const STATUS: Record<TabletStatus, string> = { online: 'Onlayn', offline: 'Oflay
                   <td class="muted">{{ ago(r.last_seen_at) }}</td>
                   <td class="tnum muted token">{{ mask(r.device_token) }}</td>
                   <td class="actions">
-                    <button class="btn sm" type="button" (click)="qrRoom.set(r)"><app-icon name="qr" [size]="15" /> Ulash</button>
+                    <button class="btn sm" type="button" (click)="pairError.set(null); qrRoom.set(r)"><app-icon name="qr" [size]="15" /> Ulash</button>
                     @if (ctx.isAdmin()) {
                       <button class="btn sm" type="button" (click)="rotate(r)"><app-icon name="refresh" [size]="15" /> Tokenni yangilash</button>
                     }
@@ -58,10 +59,27 @@ const STATUS: Record<TabletStatus, string> = { online: 'Onlayn', offline: 'Oflay
           <div class="modal-head">
             <div>
               <h2 id="qr-title">{{ r.name }}-xona · planshetni ulash</h2>
-              <p class="muted">Android planshetga token adb orqali beriladi; brauzerli ekranga QR orqali ochiladi.</p>
+              <p class="muted">Android planshet ekranidagi 6 xonali kodni kiriting. Brauzerli ekranga — QR yoki havola.</p>
             </div>
             <button class="btn icon no-print" type="button" (click)="qrRoom.set(null)" aria-label="Yopish"><app-icon name="x" /></button>
           </div>
+
+          @if (ctx.isAdmin()) {
+            <form class="pair-code no-print" (ngSubmit)="pair(r)">
+              <div class="field">
+                <label for="pair-code">Kod bilan ulash (Android ilova)</label>
+                <div class="pair-row">
+                  <input id="pair-code" name="code" class="tnum" inputmode="numeric" autocomplete="off" maxlength="7"
+                    placeholder="000 000" [(ngModel)]="pairCode" />
+                  <button class="btn primary" type="submit" [disabled]="pairing()">Ulash</button>
+                </div>
+                @if (pairError(); as err) { <div class="error">{{ err }}</div> }
+                <div class="muted small">
+                  Ilovani planshet brauzerida yuklab oling: <a class="tnum" [href]="apkUrl">{{ apkUrl }}</a>
+                </div>
+              </div>
+            </form>
+          }
 
           <div class="qr-box"><app-qr [text]="webUrl(r)" /></div>
 
@@ -73,7 +91,7 @@ const STATUS: Record<TabletStatus, string> = { online: 'Onlayn', offline: 'Oflay
             </div>
           </div>
           <div class="field">
-            <label>Android ilova (USB orqali, bir marta)</label>
+            <label>Android ilova — kompyuter orqali (adb, ixtiyoriy)</label>
             <div class="copy-row">
               <code class="tnum cmd">{{ adbCommand(r) }}</code>
               <button class="btn icon sm no-print" type="button" (click)="copy(adbCommand(r))" aria-label="Nusxalash"><app-icon name="copy" [size]="15" /></button>
@@ -118,6 +136,10 @@ const STATUS: Record<TabletStatus, string> = { online: 'Onlayn', offline: 'Oflay
     .cmd { font-size: 12px !important; }
     .token-big { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; word-break: break-all; }
     .small { font-size: 13px; margin-top: 4px; }
+    .pair-code { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .pair-row { display: flex; gap: 8px; }
+    .pair-row input { flex: 1; font-size: 22px; font-weight: 700; letter-spacing: 0.15em; text-align: center; }
+    .error { color: var(--danger-text); font-size: 13px; margin-top: 4px; }
     .preview { width: min(1100px, 100%); }
     .frame { aspect-ratio: 16 / 10; border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
     .frame iframe { width: 100%; height: 100%; border: 0; }
@@ -138,6 +160,11 @@ export class TabletsPage {
   protected readonly rooms = signal<Room[]>([]);
   protected readonly loading = signal(true);
   protected readonly qrRoom = signal<Room | null>(null);
+  protected readonly pairing = signal(false);
+  protected readonly pairError = signal<string | null>(null);
+  protected pairCode = '';
+  protected readonly apkUrl = `${location.origin}/tablet.apk`;
+
   protected readonly previewRoom = signal<{ room: Room; url: SafeResourceUrl } | null>(null);
 
   protected readonly STATUS = STATUS;
@@ -200,10 +227,32 @@ export class TabletsPage {
     this.previewRoom.set({ room: r, url: this.sanitizer.bypassSecurityTrustResourceUrl(`/tablet/${r.device_token}`) });
   }
 
+  protected async pair(r: Room) {
+    const code = this.pairCode.replace(/\D/g, '');
+    if (code.length !== 6) {
+      this.pairError.set('Kod 6 ta raqamdan iborat');
+      return;
+    }
+    this.pairing.set(true);
+    this.pairError.set(null);
+    try {
+      const updated = await this.api.pairTablet(this.ctx.slug(), r.id, code);
+      this.rooms.update((list) => list.map((x) => (x.id === r.id ? updated : x)));
+      this.toasts.ok(`Planshet ${r.name}-xonaga ulandi — bir necha soniyada jadval chiqadi`);
+      this.pairCode = '';
+      this.qrRoom.set(null);
+    } catch (e) {
+      const err = apiErrors(e);
+      this.pairError.set(err.fields['code'] ?? err.general ?? "Ulab bo'lmadi");
+    } finally {
+      this.pairing.set(false);
+    }
+  }
+
   protected async rotate(r: Room) {
     const ok = await this.confirm.ask({
       title: `Tokenni yangilash · ${r.name}-xona`,
-      text: 'Eski token darhol ishlamay qoladi. Planshetga yangi tokenni qayta berish kerak bo\'ladi. Davom etasizmi?',
+      text: 'Eski token darhol ishlamay qoladi. Planshet ekranida ulash kodi chiqadi — uni shu yerda qayta kiritasiz. Davom etasizmi?',
       ok: 'Yangilash',
       danger: true,
     });

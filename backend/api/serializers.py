@@ -37,6 +37,8 @@ class SchoolScopedSerializer(serializers.ModelSerializer):
         if school is None:
             return
         for field in self.fields.values():
+            # many=True bo'lsa queryset ichki child_relation da
+            field = getattr(field, 'child_relation', field)
             qs = getattr(field, 'queryset', None)
             if qs is not None and issubclass(qs.model, SchoolOwnedModel):
                 field.queryset = qs.filter(school=school)
@@ -194,22 +196,42 @@ class ExamSessionSerializer(SchoolScopedSerializer):
 
 
 class LessonSerializer(SchoolScopedSerializer):
-    subject_name = serializers.CharField(source='subject.name', read_only=True)
-    group_name = serializers.CharField(source='group.name', read_only=True)
-    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
-    room_name = serializers.CharField(source='room.name', read_only=True)
+    M2M = ('subjects', 'groups', 'teachers', 'rooms')
+
+    subjects = serializers.PrimaryKeyRelatedField(many=True, allow_empty=False, queryset=Subject.objects.all())
+    groups = serializers.PrimaryKeyRelatedField(many=True, allow_empty=False, queryset=Group.objects.all())
+    teachers = serializers.PrimaryKeyRelatedField(many=True, allow_empty=False, queryset=Teacher.objects.all())
+    rooms = serializers.PrimaryKeyRelatedField(many=True, allow_empty=False, queryset=Room.objects.all())
+    # Ko'rsatish uchun birlashtirilgan nomlar: "Ms Shela / Davron"
+    subject_name = serializers.CharField(source='subject_names', read_only=True)
+    group_name = serializers.CharField(source='group_names', read_only=True)
+    teacher_name = serializers.CharField(source='teacher_names', read_only=True)
+    room_name = serializers.CharField(source='room_names', read_only=True)
     start_time = serializers.TimeField(source='period.start_time', read_only=True, format='%H:%M')
     end_time = serializers.TimeField(source='period.end_time', read_only=True, format='%H:%M')
 
     class Meta:
         model = Lesson
-        # Band-bandlikni Lesson.clean() aniq xabar bilan tekshiradi (qaysi xona/kim bilan);
-        # DRF ning umumiy "unique set" validatori undan oldin ishlab xabarni yashirmasin.
-        validators = []
         fields = [
-            'id', 'term', 'weekday', 'period', 'room', 'subject', 'group', 'teacher',
+            'id', 'term', 'weekday', 'period', 'subjects', 'groups', 'teachers', 'rooms',
             'subject_name', 'group_name', 'teacher_name', 'room_name', 'start_time', 'end_time',
         ]
+
+    def validate(self, attrs):
+        # M2M ni saqlanmagan ob'ektga qo'yib bo'lmaydi — clean() ga faqat oddiy maydonlar.
+        many = {k: attrs.pop(k) for k in self.M2M if k in attrs}
+        attrs = super().validate(attrs)
+        attrs.update(many)
+        current = self.instance
+        get = lambda k: attrs[k] if k in attrs else (getattr(current, k) if current else None)
+        values = {k: attrs[k] if k in attrs else list(getattr(current, k).all()) for k in self.M2M}
+        errors = Lesson.conflicts(
+            get('term'), get('weekday'), get('period'), values['rooms'], values['teachers'], values['groups'],
+            exclude_pk=current.pk if current else None,
+        )
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
 
 class ClubSerializer(SchoolScopedSerializer):

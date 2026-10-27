@@ -556,6 +556,7 @@ private fun DayOff(status: DayStatus, title: String, resumesOn: java.time.LocalD
 private fun SetupScreen(state: UiState) {
     val d = LocalDims.current
     val rejected = state.problem == Problem.TOKEN_REJECTED
+    val canPair = state.config.server.isNotBlank()
     Column(
         Modifier
             .fillMaxSize()
@@ -563,7 +564,7 @@ private fun SetupScreen(state: UiState) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            if (rejected) "Xona topilmadi" else "Planshet sozlanmagan",
+            if (rejected) "Xona topilmadi" else "Planshetni xonaga ulash",
             fontFamily = Inter,
             fontSize = d.sp(56),
             fontWeight = FontWeight.Bold,
@@ -571,10 +572,10 @@ private fun SetupScreen(state: UiState) {
         )
         Spacer(Modifier.height(d.dp(16)))
         Text(
-            if (rejected) {
-                "Planshet tokeni noto'g'ri yoki bekor qilingan. Maktab adminiga murojaat qiling."
-            } else {
-                "Bu planshet hali xonaga biriktirilmagan. Maktab adminiga murojaat qiling."
+            when {
+                !canPair -> "Server manzili berilmagan. Maktab adminiga murojaat qiling."
+                rejected -> "Planshet tokeni bekor qilingan. Qayta ulash uchun admin panelda quyidagi kodni kiriting."
+                else -> "Admin panel → Planshetlar → xonani tanlang → «Kod bilan ulash» ga shu kodni kiriting."
             },
             fontFamily = Inter,
             fontSize = d.sp(26),
@@ -589,23 +590,43 @@ private fun SetupScreen(state: UiState) {
                 .background(Palette.surface)
                 .border(1.dp, Palette.border, shape)
                 .padding(d.dp(28)),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Admin uchun (kompyuterdan, USB/adb):", fontFamily = Inter, fontSize = d.sp(18), color = Palette.muted)
-            Spacer(Modifier.height(d.dp(10)))
-            Text(
-                "adb shell am start -n uz.darsjadval.tablet/.MainActivity --es server http://SERVER:8000 --es token XONA_TOKENI",
-                style = tabular,
-                fontSize = d.sp(18),
-                color = Palette.text,
-            )
-            Spacer(Modifier.height(d.dp(16)))
-            Text(
-                "Server: ${state.config.server.ifBlank { "—" }}",
-                style = tabular,
-                fontSize = d.sp(16),
-                color = Palette.faint,
-            )
+            if (canPair) {
+                Text("Ulash kodi", fontFamily = Inter, fontSize = d.sp(22), color = Palette.muted)
+                Spacer(Modifier.height(d.dp(8)))
+                val code = state.pairCode
+                Text(
+                    if (code != null) "${code.take(3)} ${code.drop(3)}" else "…",
+                    style = tabular,
+                    fontSize = d.sp(120),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.08.em,
+                    color = Palette.text,
+                )
+                Spacer(Modifier.height(d.dp(8)))
+                Text(
+                    if (code != null) "Kod 15 daqiqa amal qiladi, keyin o'zi yangilanadi" else "Serverga ulanmoqda…",
+                    fontFamily = Inter,
+                    fontSize = d.sp(18),
+                    color = Palette.faint,
+                )
+            } else {
+                Text(
+                    "adb shell am start -n uz.darsjadval.tablet/.MainActivity --es server https://SERVER --es token XONA_TOKENI",
+                    style = tabular,
+                    fontSize = d.sp(18),
+                    color = Palette.text,
+                )
+            }
         }
+        Spacer(Modifier.height(d.dp(16)))
+        Text(
+            "Server: ${state.config.server.ifBlank { "—" }}",
+            style = tabular,
+            fontSize = d.sp(16),
+            color = Palette.faint,
+        )
     }
 }
 

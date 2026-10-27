@@ -49,6 +49,11 @@ export class SchoolApi {
     return firstValueFrom(this.http.post<Room>(this.url(slug, `rooms/${roomId}/rotate-token/`), {}));
   }
 
+  /** Planshet ekranidagi ulash kodini xonaga bog'laydi */
+  pairTablet(slug: string, roomId: number, code: string) {
+    return firstValueFrom(this.http.post<Room>(this.url(slug, `rooms/${roomId}/pair/`), { code }));
+  }
+
   copyLessons(slug: string, fromTerm: number, toTerm: number) {
     return firstValueFrom(
       this.http.post<{ copied: number }>(this.url(slug, 'lessons/copy/'), { from_term: fromTerm, to_term: toTerm }),

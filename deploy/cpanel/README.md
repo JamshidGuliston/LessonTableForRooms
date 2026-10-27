@@ -78,4 +78,11 @@ bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 - Zaxira: `cp ~/timetable.gulistanps.uz/app/backend/db.sqlite3 ~/db-$(date +%F).sqlite3`
   (cPanel → Backup ham uy papkasi bilan birga saqlaydi).
 
-Planshetlar: Android ilovada server manzili `https://timetable.gulistanps.uz`.
+## Planshetlar
+
+`update.sh` APK'ni `https://timetable.gulistanps.uz/tablet.apk` ga qo'yadi (server manzili ichida).
+Planshet brauzerida shu manzilni ochib o'rnating → ekranda 6 xonali kod chiqadi → admin panel →
+Planshetlar → xona → **Ulash** → kodni kiriting. Batafsil: `android/README.md`.
+
+APK yangilash (kompyuterda): `cd android && ./gradlew assembleRelease -PdefaultServer=https://timetable.gulistanps.uz`,
+so'ng `app/build/outputs/apk/release/app-release.apk` → `deploy/cpanel/tablet.apk`, commit + push.

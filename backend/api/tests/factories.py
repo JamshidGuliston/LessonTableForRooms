@@ -85,13 +85,9 @@ def make_lesson(school, term, room, period, weekday, subject_name='Matematika', 
     subject, _ = Subject.objects.get_or_create(school=school, name=subject_name)
     group, _ = Group.objects.get_or_create(school=school, name=group_name)
     teacher, _ = Teacher.objects.get_or_create(school=school, full_name=teacher_name)
-    return Lesson.objects.create(
-        school=school,
-        term=term,
-        room=room,
-        period=period,
-        weekday=weekday,
-        subject=subject,
-        group=group,
-        teacher=teacher,
-    )
+    lesson = Lesson.objects.create(school=school, term=term, period=period, weekday=weekday)
+    lesson.rooms.set([room])
+    lesson.subjects.set([subject])
+    lesson.groups.set([group])
+    lesson.teachers.set([teacher])
+    return lesson

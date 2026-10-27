@@ -81,8 +81,12 @@ class ExamSessionAdmin(DateRangeAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(SchoolOwnedAdmin):
-    list_display = ['term', 'weekday', 'period', 'room', 'subject', 'group', 'teacher']
-    list_filter = ['school', 'term', 'weekday', 'room', 'group', 'teacher']
+    list_display = ['term', 'weekday', 'period', 'room_names', 'subject_names', 'group_names', 'teacher_names']
+    list_filter = ['school', 'term', 'weekday', 'rooms', 'groups', 'teachers']
+    filter_horizontal = ['subjects', 'groups', 'teachers', 'rooms']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('subjects', 'groups', 'teachers', 'rooms')
 
 
 class ClubSessionInline(admin.TabularInline):

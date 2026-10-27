@@ -12,17 +12,17 @@ import { Toasts } from '../../shared/toast';
 import { PageHead } from '../shell/page-head';
 import { GridView, buildGrid, cellLines } from './grid';
 
-interface Draft {
+/** Bir katakda bir nechta fan/o'qituvchi/xona/guruh bo'lishi mumkin. */
+type PickKey = 'subjects' | 'teachers' | 'rooms' | 'groups';
+
+interface Draft extends Record<PickKey, number[]> {
   id: number | null;
   weekday: number;
   period: number;
-  subject: number | null;
-  teacher: number | null;
-  room: number | null;
-  group: number | null;
 }
 
 const VIEW_FIELD: Record<GridView, 'group' | 'teacher' | 'room'> = { group: 'group', teacher: 'teacher', room: 'room' };
+const VIEW_PICK: Record<GridView, PickKey> = { group: 'groups', teacher: 'teachers', room: 'rooms' };
 
 @Component({
   selector: 'app-timetable-page',
@@ -73,6 +73,21 @@ export class TimetablePage {
 
   protected readonly grid = computed(() => buildGrid(this.periods(), this.lessons(), this.weekdays()));
   protected readonly colorBySubject = computed(() => new Map(this.subjects().map((s) => [s.id, s.color || null])));
+  protected readonly pickers = computed<{ key: PickKey; label: string; options: { id: number; name: string }[] }[]>(() => [
+    { key: 'subjects', label: 'Fan', options: this.subjects() },
+    { key: 'teachers', label: "O'qituvchi", options: this.teachers().map((t) => ({ id: t.id, name: t.full_name })) },
+    { key: 'rooms', label: 'Xona', options: this.rooms() },
+    { key: 'groups', label: 'Guruh', options: this.groups() },
+  ]);
+  protected readonly nameOf = computed(() => {
+    const names = new Map<PickKey, Map<number, string>>();
+    for (const p of this.pickers()) names.set(p.key, new Map(p.options.map((o) => [o.id, o.name])));
+    return names;
+  });
+  protected readonly draftComplete = computed(() => {
+    const d = this.draft();
+    return !!d && d.subjects.length > 0 && d.teachers.length > 0 && d.rooms.length > 0 && d.groups.length > 0;
+  });
   protected readonly draftPeriod = computed(() => this.periods().find((p) => p.id === this.draft()?.period) ?? null);
   protected readonly lessonPeriods = computed(() => this.periods().filter((p) => p.kind === 'lesson'));
   protected readonly currentTerm = computed(() => this.terms().find((t) => t.id === this.termId()) ?? null);
@@ -143,18 +158,21 @@ export class TimetablePage {
 
   protected openNew(weekday: number, period: number) {
     if (!this.ctx.isAdmin()) return;
-    const field = VIEW_FIELD[this.view()];
+    const entity = this.entityId();
     this.errors.set(null);
     this.draft.set({
-      id: null, weekday, period, subject: null, teacher: null, room: null, group: null,
-      [field]: this.entityId(),
+      id: null, weekday, period, subjects: [], teachers: [], rooms: [], groups: [],
+      [VIEW_PICK[this.view()]]: entity ? [entity] : [],
     });
   }
 
   protected openEdit(l: Lesson) {
     if (!this.ctx.isAdmin()) return;
     this.errors.set(null);
-    this.draft.set({ id: l.id, weekday: l.weekday, period: l.period, subject: l.subject, teacher: l.teacher, room: l.room, group: l.group });
+    this.draft.set({
+      id: l.id, weekday: l.weekday, period: l.period,
+      subjects: [...l.subjects], teachers: [...l.teachers], rooms: [...l.rooms], groups: [...l.groups],
+    });
   }
 
   protected openAdd() {
@@ -164,6 +182,19 @@ export class TimetablePage {
 
   protected patch(p: Partial<Draft>) {
     this.draft.update((d) => (d ? { ...d, ...p } : d));
+  }
+
+  /** Ro'yxatga qo'shish: select har safar "Tanlang" ga qaytadi. */
+  protected pick(key: PickKey, select: HTMLSelectElement) {
+    const id = Number(select.value);
+    select.value = '';
+    const d = this.draft();
+    if (d && id && !d[key].includes(id)) this.patch({ [key]: [...d[key], id] });
+  }
+
+  protected unpick(key: PickKey, id: number) {
+    const d = this.draft();
+    if (d) this.patch({ [key]: d[key].filter((x) => x !== id) });
   }
 
   protected close() {
@@ -177,7 +208,10 @@ export class TimetablePage {
     if (!d || !term) return;
     this.saving.set(true);
     this.errors.set(null);
-    const body = { term, weekday: d.weekday, period: d.period, subject: d.subject, teacher: d.teacher, room: d.room, group: d.group };
+    const body = {
+      term, weekday: d.weekday, period: d.period,
+      subjects: d.subjects, teachers: d.teachers, rooms: d.rooms, groups: d.groups,
+    };
     try {
       if (d.id) await this.api.update<Lesson>(this.ctx.slug(), 'lessons', d.id, body);
       else await this.api.create<Lesson>(this.ctx.slug(), 'lessons', body);

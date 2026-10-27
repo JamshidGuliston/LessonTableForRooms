@@ -6,6 +6,20 @@ import java.time.LocalDateTime
 
 object TabletJson {
 
+    fun parsePairStart(body: String): PairStart {
+        val root = JSONObject(body)
+        return PairStart(secret = root.getString("secret"), code = root.getString("code"))
+    }
+
+    fun parsePairStatus(body: String): PairStatus {
+        val root = JSONObject(body)
+        return if (root.optString("status") == "paired") {
+            PairStatus.Paired(token = root.getString("token"))
+        } else {
+            PairStatus.Pending(code = root.optString("code"))
+        }
+    }
+
     fun parse(body: String): TabletData {
         val root = JSONObject(body)
         val day = root.getJSONObject("day")

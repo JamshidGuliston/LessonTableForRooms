@@ -9,7 +9,7 @@ const periods: Period[] = [
 
 function lesson(over: Partial<Lesson>): Lesson {
   return {
-    id: 1, term: 1, weekday: 0, period: 1, room: 1, subject: 1, group: 1, teacher: 1,
+    id: 1, term: 1, weekday: 0, period: 1, rooms: [1], subjects: [1], groups: [1], teachers: [1],
     subject_name: 'Matematika', group_name: '7-A', teacher_name: 'Karimov B.', room_name: '101',
     start_time: '08:30', end_time: '09:15', ...over,
   };
