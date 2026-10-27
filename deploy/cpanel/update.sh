@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# cPanel hostingda o'rnatish/yangilash:  bash ~/darsjadval/deploy/cpanel/update.sh
+# cPanel hostingda o'rnatish/yangilash:  bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 set -euo pipefail
 
-REPO="${REPO:-$HOME/darsjadval}"
 APP="${APP:-$HOME/timetable.gulistanps.uz}"
+REPO="${REPO:-$APP/app}"
 VENV="${VENV:-$HOME/virtualenv/timetable.gulistanps.uz/3.13}"
 PY="$VENV/bin/python"
 
@@ -12,7 +12,8 @@ git pull --ff-only
 
 echo "== Backend"
 cd "$REPO/backend"
-[ -f .env ] || { echo "backend/.env yo'q — deploy/env.example dan nusxa oling"; exit 1; }
+[ -f .env ] || { echo "backend/.env yo'q — deploy/cpanel/env.example dan nusxa oling"; exit 1; }
+[ -f "$REPO/.htaccess" ] || { echo "$REPO/.htaccess yo'q — kod internetga ochiq qolardi"; exit 1; }
 "$PY" -m pip install -q -r requirements.txt
 set -a; . ./.env; set +a
 "$PY" manage.py migrate --noinput

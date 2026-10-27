@@ -4,14 +4,14 @@ Hostingda root yo'q (`sudo`, `apt`, nginx ishlatilmaydi). Django'ni cPanel'ning
 **Setup Python App** (Passenger) ishga tushiradi, Angular esa tayyor build sifatida
 shu domen papkasiga ko'chiriladi. Serverda Node.js kerak emas.
 
-Domen `timetable.gulistanps.uz` papkasiga yo'naltirilgan va u Python App root — sayt
-shu papkadan ochiladi. Manba kod va `.env` (parollar) esa atayin alohida `~/darsjadval`
-da turadi: domen papkasidagi har bir fayl internetdan ochilishi mumkin.
+Hammasi domen papkasi `~/timetable.gulistanps.uz` ichida (u Python App root ham).
+Kod shu papka ichidagi `app/` da; u internetdan yopiq — `app/.htaccess` (`Require all denied`)
+va domen `.htaccess` idagi `RedirectMatch 404 ^/app`.
 
 ```
-~/darsjadval/                      git clone (kod, .env — veb-papkadan tashqarida)
 ~/timetable.gulistanps.uz/         domen papkasi = Python App root
-    passenger_wsgi.py              → ~/darsjadval/backend ni yuklaydi
+    app/                           git clone (kod, backend/.env) — internetdan yopiq
+    passenger_wsgi.py              → app/backend ni yuklaydi
     .htaccess                      /api, /admin → Django; qolgani → index.html
     index.html, main-*.js, ...     Angular (deploy/cpanel/www dan)
     static/                        Django admin CSS/JS (collectstatic)
@@ -28,11 +28,11 @@ bilan qo'shing. Jadvallarni phpMyAdmin'da qo'lda yaratish shart emas — `migrat
 Talab: MariaDB 10.6+ yoki MySQL 8.0+ (versiya phpMyAdmin bosh sahifasida "Server version").
 
 ```bash
-cd ~
-git clone https://github.com/JamshidGuliston/LessonTableForRooms.git darsjadval
-cp darsjadval/deploy/cpanel/env.example darsjadval/backend/.env
-nano darsjadval/backend/.env       # DJANGO_SECRET_KEY va DB_NAME / DB_USER / DB_PASSWORD
-bash darsjadval/deploy/cpanel/update.sh
+cd ~/timetable.gulistanps.uz
+git clone https://github.com/JamshidGuliston/LessonTableForRooms.git app
+cp app/deploy/cpanel/env.example app/backend/.env
+nano app/backend/.env              # DJANGO_SECRET_KEY va DB_NAME / DB_USER / DB_PASSWORD
+bash app/deploy/cpanel/update.sh
 ```
 
 SECRET_KEY yaratish:
@@ -41,11 +41,12 @@ SECRET_KEY yaratish:
 Admin (superuser) yaratish:
 
 ```bash
-cd ~/darsjadval/backend && set -a && . ./.env && set +a
+cd ~/timetable.gulistanps.uz/app/backend && set -a && . ./.env && set +a
 ~/virtualenv/timetable.gulistanps.uz/3.13/bin/python manage.py createsuperuser
 ```
 
-Tekshirish: https://timetable.gulistanps.uz/api/health/ → `{"status":"ok"}`, keyin
+Tekshirish: https://timetable.gulistanps.uz/api/health/ → `{"status":"ok"}`;
+https://timetable.gulistanps.uz/app/backend/.env → **404/403** bo'lishi shart; keyin
 https://timetable.gulistanps.uz/admin/ → **Schools** da maktab yarating va
 **School memberships** da foydalanuvchini `admin` qilib biriktiring
 (sinash uchun: `manage.py seed_demo` — demo maktab, `admin` / `admin123`; keyin parolni almashtiring).
@@ -62,7 +63,7 @@ git add -A && git commit -m "..." && git push
 Serverda:
 
 ```bash
-bash ~/darsjadval/deploy/cpanel/update.sh
+bash ~/timetable.gulistanps.uz/app/deploy/cpanel/update.sh
 ```
 
 `update.sh`: git pull → pip install → migrate → collectstatic → Angular fayllari →

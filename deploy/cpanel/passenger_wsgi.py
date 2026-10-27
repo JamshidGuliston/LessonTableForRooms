@@ -1,13 +1,13 @@
 """cPanel "Setup Python App" (Passenger) kirish nuqtasi.
 
 update.sh bu faylni ilova papkasiga (~/timetable.gulistanps.uz) nusxalaydi.
-Kod esa ~/darsjadval da (veb-papkadan tashqarida), sozlamalar ~/darsjadval/backend/.env da.
+Kod shu papka ichidagi app/ da (git clone), sozlamalar app/backend/.env da.
 """
 import os
 import sys
 from pathlib import Path
 
-BACKEND = Path(os.environ.get('DARSJADVAL_BACKEND', Path(__file__).resolve().parent.parent / 'darsjadval' / 'backend'))
+BACKEND = Path(os.environ.get('DARSJADVAL_BACKEND', Path(__file__).resolve().parent / 'app' / 'backend'))
 sys.path.insert(0, str(BACKEND))
 
 env_file = BACKEND / '.env'
