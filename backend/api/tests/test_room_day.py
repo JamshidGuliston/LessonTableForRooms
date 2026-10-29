@@ -168,3 +168,32 @@ class FreePeriodTests(TestCase):
                                    start_time=time(10, 50), end_time=time(11, 20), room=self.room)
         kinds = [e['kind'] for e in room_day(self.room, MONDAY)['entries']]
         self.assertEqual(kinds, ['free', 'coffee_break', 'lesson', 'lunch', 'club'])
+
+
+class LessonNumberTests(TestCase):
+    """Dars soatlari 1, 2, 3 … deb raqamlanadi (vaqt bo'yicha); tanaffus/tushlik/to'garak — raqamsiz."""
+
+    def setUp(self):
+        self.school = make_school()
+        _, self.term, _ = make_calendar(self.school)
+        self.periods = make_periods(self.school)  # 1-dars, tanaffus, 2-dars, tushlik, 3-dars
+        self.room = make_room(self.school)
+        make_lesson(self.school, self.term, self.room, self.periods[2], weekday=0)
+
+    def test_numbers_follow_lesson_periods_only(self):
+        entries = room_day(self.room, MONDAY)['entries']
+        got = [(e['kind'], e['start_time'], e['number']) for e in entries]
+        self.assertEqual(got, [
+            ('free', '08:30', 1),
+            ('coffee_break', '09:15', None),
+            ('lesson', '09:30', 2),
+            ('lunch', '10:15', None),
+            ('free', '10:45', 3),
+        ])
+
+    def test_number_follows_time_not_creation_order(self):
+        from api.models import Period
+        Period.objects.create(school=self.school, order=0, name='0-dars', kind=Period.Kind.LESSON,
+                              start_time=time(7, 45), end_time=time(8, 25))
+        lesson = next(e for e in room_day(self.room, MONDAY)['entries'] if e['kind'] == 'lesson')
+        self.assertEqual(lesson['number'], 3)

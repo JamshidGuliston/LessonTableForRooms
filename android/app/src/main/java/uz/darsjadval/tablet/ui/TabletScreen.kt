@@ -231,7 +231,7 @@ private fun Hero(current: Schedule.Current, next: DayEntry?) {
         Row {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "${kindLabel(e.kind)} · ${Format.range(e.startMin, e.endMin)}",
+                    "${heroLabel(e)} · ${Format.range(e.startMin, e.endMin)}",
                     style = tabular,
                     fontSize = d.sp(20),
                     fontWeight = FontWeight.Bold,
@@ -413,53 +413,37 @@ private fun QuoteCard(quote: Quote, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(d.dp(20))
     // Uzun matn kichikroq shriftda — 300 belgigacha sig'ishi kerak
     val size = if (quote.text.length > 140) 26 else 34
-    // Muallif rasmi bo'lsa — chapda, matn chapga tekislanadi
-    val align = if (quote.image != null) TextAlign.Start else TextAlign.Center
-    Row(
+    Column(
         modifier
             .fillMaxWidth()
             .clip(shape)
             .background(Palette.surface)
             .border(1.dp, Palette.border, shape)
             .padding(horizontal = d.dp(40), vertical = d.dp(28)),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        quote.image?.let {
-            RemoteImage(
-                it,
-                Modifier
-                    .size(width = d.dp(160), height = d.dp(200))
-                    .clip(RoundedCornerShape(d.dp(16)))
-                    .border(1.dp, Palette.border, RoundedCornerShape(d.dp(16))),
-                contentDescription = quote.author,
-            )
-            Spacer(Modifier.width(d.dp(32)))
-        }
-        Column(Modifier.weight(1f)) {
+        Text(
+            "\u201C${quote.text.uppercase()}\u201D",
+            fontFamily = Inter,
+            fontSize = d.sp(size),
+            lineHeight = d.sp(size * 1.3f),
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.02.em,
+            color = Palette.primaryText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        quote.author?.let {
+            Spacer(Modifier.height(d.dp(14)))
             Text(
-                "“${quote.text.uppercase()}”",
+                it.uppercase(),
                 fontFamily = Inter,
-                fontSize = d.sp(size),
-                lineHeight = d.sp(size * 1.3f),
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.02.em,
-                color = Palette.primaryText,
-                textAlign = align,
+                fontSize = d.sp(20),
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.08.em,
+                color = Palette.muted,
+                textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
             )
-            quote.author?.let {
-                Spacer(Modifier.height(d.dp(14)))
-                Text(
-                    it.uppercase(),
-                    fontFamily = Inter,
-                    fontSize = d.sp(20),
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.08.em,
-                    color = Palette.muted,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
         }
     }
 }
@@ -497,6 +481,17 @@ private fun EntryRow(item: Schedule.Item) {
         bordered.padding(horizontal = d.dp(28), vertical = d.dp(12)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Dars raqami (1–7); tanaffus/tushlikda bo'sh joy — vaqtlar bir chiziqda tursin
+        Text(
+            e.number?.toString() ?: "",
+            style = tabular,
+            fontSize = d.sp(26),
+            fontWeight = FontWeight.ExtraBold,
+            color = Palette.primaryText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(d.dp(40)),
+        )
+        Spacer(Modifier.width(d.dp(12)))
         Column(Modifier.width(d.dp(120))) {
             Text(
                 Format.hm(e.startMin),

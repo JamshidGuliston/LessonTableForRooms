@@ -184,6 +184,7 @@ def upload_group_image(instance, filename):
     return _random_name('groups', filename)
 
 
+# Iqtibos rasmi olib tashlangan; funksiya 0007 migratsiyasi uchun qoldi.
 def upload_quote_image(instance, filename):
     return _random_name('quotes', filename)
 
@@ -476,8 +477,6 @@ class Quote(SchoolOwnedModel):
 
     text = models.TextField(max_length=MAX_LENGTH)
     author = models.CharField(max_length=100, blank=True)
-    # Muallif rasmi — iqtibosning chap tomonida
-    image = models.ImageField(upload_to=upload_quote_image, blank=True)
     # Bog'langan bo'lsa — faqat shu guruhlar darsi paytida; bog'lanmagani — tanaffus va boshqa paytda
     groups = models.ManyToManyField(Group, blank=True, related_name='quotes')
     is_active = models.BooleanField(default=True)

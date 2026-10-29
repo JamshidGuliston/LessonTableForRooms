@@ -38,6 +38,10 @@ fun kindColors(kind: EntryKind): KindColors = when (kind) {
     EntryKind.FREE -> KindColors(Palette.border, Palette.muted, Palette.surface2)
 }
 
+/** Kartochka yorlig'i: "2-DARS", raqam bo'lmasa — tur nomi */
+fun heroLabel(e: uz.darsjadval.tablet.data.DayEntry) =
+    if (e.kind == EntryKind.LESSON && e.number != null) "${e.number}-DARS" else kindLabel(e.kind)
+
 fun kindLabel(kind: EntryKind) = when (kind) {
     EntryKind.LESSON -> "DARS"
     EntryKind.EXAM -> "IMTIHON"

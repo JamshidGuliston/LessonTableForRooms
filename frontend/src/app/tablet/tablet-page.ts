@@ -116,6 +116,11 @@ export class TabletPage {
     return KIND_LABEL[kind];
   }
 
+  /** Kartochka yorlig'i: "2-dars", raqam bo'lmasa — tur nomi */
+  protected heroLabel(e: DayEntry): string {
+    return e.kind === 'lesson' && e.number ? `${e.number}-dars` : KIND_LABEL[e.kind];
+  }
+
   private apply(result: LoadResult) {
     if ('data' in result) {
       this.data.set(result.data);

@@ -38,11 +38,11 @@ object TabletJson {
                 resumesOn = day.nullableString("resumes_on")?.let(LocalDate::parse),
                 entries = (0 until (entries?.length() ?: 0)).map {
                     val o = entries!!.getJSONObject(it)
-                    entry(o).copy(image = url(o))
+                    entry(o).copy(image = url(o), number = o.optInt("number").takeIf { it > 0 })
                 },
             ),
             quote = root.optJSONObject("quote")?.let {
-                Quote(text = it.optString("text"), author = it.nullableString("author"), image = url(it))
+                Quote(text = it.optString("text"), author = it.nullableString("author"))
             },
         )
     }

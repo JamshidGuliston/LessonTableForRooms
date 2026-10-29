@@ -72,10 +72,11 @@ def room_day(room, day, now=None, info=None):
         entries = [_exam_entry(e) for e in _room_exams(room, info['session'], day)]
     elif info['term']:
         term = info['term']
-        entries = [_lesson_entry(l) for l in _room_lessons(room, term, day)]
+        numbers = _lesson_numbers(school)
+        entries = [_lesson_entry(l, numbers) for l in _room_lessons(room, term, day)]
         entries += [_break_entry(p) for p in _break_periods(school)]
         entries += [_club_entry(c) for c in _room_clubs(room, term.academic_year_id, day)]
-        entries += [_free_entry(p) for p in _free_periods(school, entries)]
+        entries += [_free_entry(p, numbers) for p in _free_periods(school, entries)]
     else:
         return result
 
@@ -108,6 +109,12 @@ def _room_lessons(room, term, day):
 
 def _break_periods(school):
     return Period.objects.filter(school=school).exclude(kind=Period.Kind.LESSON)
+
+
+def _lesson_numbers(school):
+    """Dars soatlarining tartib raqami (1, 2, … 7) — vaqt bo'yicha; tanaffus/tushlik sanalmaydi."""
+    lessons = Period.objects.filter(school=school, kind=Period.Kind.LESSON).order_by('start_time')
+    return {p.id: i for i, p in enumerate(lessons, start=1)}
 
 
 def _free_periods(school, entries):
@@ -144,6 +151,8 @@ def _entry(kind, title, start, end, **extra):
         'group': None,
         'teacher': None,
         'subject_color': None,
+        # Dars soatining tartib raqami (1-dars, 2-dars …); tanaffus, to'garak, imtihonda — null
+        'number': None,
         # Guruh (alloma) rasmi, nisbiy URL: /media/groups/...
         'image': None,
         # Shu yozuvdagi guruhlar — iqtibos tanlash uchun
@@ -158,7 +167,7 @@ def _image_url(groups):
     return next((g.image.url for g in groups if g.image), None)
 
 
-def _lesson_entry(lesson):
+def _lesson_entry(lesson, numbers):
     groups = list(lesson.groups.all())
     return _entry(
         'lesson',
@@ -168,6 +177,7 @@ def _lesson_entry(lesson):
         group=lesson.group_names,
         teacher=lesson.teacher_names,
         subject_color=next((s.color for s in lesson.subjects.all() if s.color), None),
+        number=numbers.get(lesson.period_id),
         image=_image_url(groups),
         group_ids=[g.id for g in groups],
     )
@@ -177,8 +187,8 @@ def _break_entry(period):
     return _entry(period.kind, period.name, period.start_time, period.end_time)
 
 
-def _free_entry(period):
-    return _entry('free', "Xona bo'sh", period.start_time, period.end_time)
+def _free_entry(period, numbers):
+    return _entry('free', "Xona bo'sh", period.start_time, period.end_time, number=numbers.get(period.id))
 
 
 def _club_entry(session):
@@ -231,7 +241,7 @@ def quote_for(school, now, group_ids=()):
     - aks holda (tanaffus, bo'sh xona, guruhga iqtibos yo'q) — hech qaysi guruhga bog'lanmaganlar.
     Planshet har 30 s so'raydi — yangisi shu vaqt ichida ko'rinadi.
     """
-    active = Quote.objects.filter(school=school, is_active=True).prefetch_related('groups')
+    active = Quote.objects.filter(school=school, is_active=True)
     quotes = list(active.filter(groups__in=group_ids).distinct()) if group_ids else []
     if not quotes:
         quotes = list(active.filter(groups=None))
@@ -239,7 +249,4 @@ def quote_for(school, now, group_ids=()):
         return None
     minute = (now.date().toordinal() * 24 + now.hour) * 60 + now.minute
     quote = quotes[(minute // QUOTE_ROTATE_MINUTES) % len(quotes)]
-    # Rasm: muallifniki, bo'lmasa — bog'langan (hozirgi) guruhning alloma rasmi
-    groups = [g for g in quote.groups.all() if not group_ids or g.id in group_ids]
-    image = quote.image.url if quote.image else _image_url(groups)
-    return {'text': quote.text, 'author': quote.author, 'image': image}
+    return {'text': quote.text, 'author': quote.author}

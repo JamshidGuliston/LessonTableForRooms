@@ -14,6 +14,7 @@ function entry(over: Partial<DayEntry>): DayEntry {
     group: '7-A',
     teacher: 'Aliyev A.',
     subject_color: null,
+    number: null,
     image: null,
     group_ids: [],
     status: 'upcoming',
@@ -125,15 +126,19 @@ describe('TabletPage', () => {
   });
 
   it('shows the quote with its author after the list', async () => {
-    const el = await render(response({ entries: [entry({})] }, { text: 'Yoshlar bizning tayanchimiz', author: 'Sh. Mirziyoyev', image: null }));
+    const el = await render(response({ entries: [entry({})] }, { text: 'Yoshlar bizning tayanchimiz', author: 'Sh. Mirziyoyev' }));
     expect(el.querySelector('.quote blockquote')?.textContent).toContain('Yoshlar bizning tayanchimiz');
     expect(el.querySelector('.quote figcaption')?.textContent).toContain('Sh. Mirziyoyev');
   });
 
-  it('shows the author photo on the left of the quote', async () => {
-    const el = await render(response({ entries: [entry({})] }, { text: 'Ilm — nur', author: 'Navoiy', image: '/media/quotes/n.jpg' }));
-    const quote = el.querySelector('.quote.with-image')!;
-    expect(quote.firstElementChild?.getAttribute('src')).toBe('/media/quotes/n.jpg');
+  it('numbers lesson rows and leaves breaks unnumbered', async () => {
+    const lesson = entry({ number: 3, status: 'active' });
+    const lunch = entry({ kind: 'lunch', title: 'Tushlik', group: null, teacher: null, start_time: '09:15', end_time: '09:45' });
+    const el = await render(response({ entries: [lesson, lunch], current: lesson }));
+    const nums = [...el.querySelectorAll('.entry .num')].map((n) => n.textContent?.trim());
+    expect(nums).toEqual(['3', '']);
+    expect(el.querySelector('.hero .hero-kind')?.textContent).toContain('3-dars');
+    expect(el.querySelector('.quote img')).toBeNull();
   });
 
   it('shows the group portrait in the hero during the lesson', async () => {

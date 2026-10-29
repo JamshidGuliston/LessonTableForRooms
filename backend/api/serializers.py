@@ -259,13 +259,13 @@ class LessonSerializer(SchoolScopedSerializer):
         return attrs
 
 
-class QuoteSerializer(ImageModelSerializer):
+class QuoteSerializer(SchoolScopedSerializer):
     # Form-data da yuborilmagan checkbox DRF uchun False — yangi so'z sukut bo'yicha faol bo'lsin
     is_active = serializers.BooleanField(default=True)
 
     class Meta:
         model = Quote
-        fields = ['id', 'text', 'author', 'image', 'groups', 'is_active']
+        fields = ['id', 'text', 'author', 'groups', 'is_active']
 
 
 class ClubSerializer(SchoolScopedSerializer):

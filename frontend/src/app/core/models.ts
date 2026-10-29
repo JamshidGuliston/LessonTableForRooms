@@ -13,6 +13,8 @@ export interface DayEntry {
   group: string | null;
   teacher: string | null;
   subject_color: string | null;
+  /** Dars soatining tartib raqami (1–7); tanaffus, to'garak, imtihonda null */
+  number: number | null;
   /** Guruh (alloma) rasmi, nisbiy URL (/media/...) */
   image: string | null;
   group_ids: number[];
@@ -41,6 +43,4 @@ export interface TabletResponse {
 export interface Quote {
   text: string;
   author: string;
-  /** Muallif rasmi (bo'lmasa — bog'langan guruh rasmi), nisbiy URL */
-  image: string | null;
 }

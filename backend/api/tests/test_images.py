@@ -107,9 +107,9 @@ class TabletImageAndQuoteTests(MediaTestCase):
         texts = {quote_for(self.school, self.at(8, m), [self.group.id])['text'] for m in range(30, 45)}
         self.assertEqual(texts, {'Ilm — nur'})
 
-    def test_linked_quote_without_own_image_uses_group_image(self):
-        q = quote_for(self.school, self.at(8, 40), [self.group.id])
-        self.assertEqual(q['image'], self.group.image.url)
+    def test_quote_has_no_image(self):
+        # Hikmatli so'z oldida rasm ko'rsatilmaydi — rasm faqat dars kartochkasida
+        self.assertEqual(set(quote_for(self.school, self.at(8, 40), [self.group.id])), {'text', 'author'})
 
     def test_during_break_only_general_quotes(self):
         texts = {quote_for(self.school, self.at(9, m), [])['text'] for m in range(15, 30)}
@@ -118,11 +118,6 @@ class TabletImageAndQuoteTests(MediaTestCase):
     def test_group_without_quotes_falls_back_to_general(self):
         lonely = Group.objects.create(school=self.school, name='9-A')
         self.assertEqual(quote_for(self.school, self.at(8, 40), [lonely.id])['text'], 'Umumiy')
-
-    def test_general_quote_shows_author_image(self):
-        self.general.image.save('navoiy.png', png(), save=True)
-        q = quote_for(self.school, self.at(9, 20), [])
-        self.assertEqual(q['image'], self.general.image.url)
 
     def test_tablet_endpoint_picks_quote_by_current_lesson(self):
         from unittest import mock

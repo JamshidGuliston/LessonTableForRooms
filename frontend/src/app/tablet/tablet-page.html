@@ -19,7 +19,7 @@
       <section class="hero" [class.exam]="cur.kind === 'exam'" [class.club]="cur.kind === 'club'" [class.break]="cur.kind === 'coffee_break' || cur.kind === 'lunch'">
         <div class="hero-top">
           <div class="hero-main">
-            <div class="hero-kind">{{ kindLabel(cur.kind) }} · {{ cur.start_time }}–{{ cur.end_time }}</div>
+            <div class="hero-kind">{{ heroLabel(cur) }} · {{ cur.start_time }}–{{ cur.end_time }}</div>
             <div class="hero-title">{{ cur.title }}</div>
             @if (cur.group || cur.teacher) {
               <div class="hero-sub">
@@ -59,6 +59,7 @@
     <ul class="entries">
       @for (e of day()!.entries; track e.start_time + e.title) {
         <li class="entry" [class]="'entry ' + e.kind + ' ' + e.status">
+          <span class="num tnum">{{ e.number ?? '' }}</span>
           <span class="time">{{ e.start_time }}<small>{{ e.end_time }}</small></span>
           <span class="dot" [style.background]="e.subject_color"></span>
           <span class="body">
@@ -76,12 +77,9 @@
   }
 
   @if (d.quote; as q) {
-    <figure class="quote" [class.long]="q.text.length > 140" [class.with-image]="!!q.image">
-      @if (q.image) { <img class="author-photo" [src]="q.image" [alt]="q.author" /> }
-      <div class="quote-body">
-        <blockquote>{{ q.text }}</blockquote>
-        @if (q.author) { <figcaption>{{ q.author }}</figcaption> }
-      </div>
+    <figure class="quote" [class.long]="q.text.length > 140">
+      <blockquote>{{ q.text }}</blockquote>
+      @if (q.author) { <figcaption>{{ q.author }}</figcaption> }
     </figure>
   }
 } @else {

@@ -23,9 +23,9 @@ class TabletJsonTest {
             "entries": [
               {"kind": "lesson", "title": "Tarix", "start_time": "10:20", "end_time": "11:05",
                "group": "9-A", "teacher": "Nazarova Gulnora", "subject_color": "#F97316", "status": "active",
-               "image": "/media/groups/beruniy.jpg", "group_ids": [3]},
+               "image": "/media/groups/beruniy.jpg", "group_ids": [3], "number": 4},
               {"kind": "lunch", "title": "Tushlik", "start_time": "11:05", "end_time": "11:45",
-               "group": null, "teacher": null, "subject_color": null, "status": "upcoming"},
+               "group": null, "teacher": null, "subject_color": null, "status": "upcoming", "number": null},
               {"kind": "club", "title": "Shaxmat", "start_time": "14:30", "end_time": "16:00",
                "group": null, "teacher": "Rahimov S.", "subject_color": null, "status": "upcoming"},
               {"kind": "free", "title": "Xona bo'sh", "start_time": "16:00", "end_time": "16:45",
@@ -33,7 +33,7 @@ class TabletJsonTest {
             ],
             "current": null, "next": null
           },
-          "quote": {"text": "Yoshlar bizning tayanchimiz", "author": "Sh. Mirziyoyev", "image": null}
+          "quote": {"text": "Yoshlar bizning tayanchimiz", "author": "Sh. Mirziyoyev"}
         }
     """.trimIndent()
 
@@ -83,13 +83,14 @@ class TabletJsonTest {
         val data = TabletJson.parse(sample, "https://timetable.gulistanps.uz/")
         assertEquals("https://timetable.gulistanps.uz/media/groups/beruniy.jpg", data.day.entries[0].image)
         assertNull(data.day.entries[1].image)
-        assertNull(data.quote?.image)
+    }
 
-        val withPhoto = sample.replace("\"image\": null}", "\"image\": \"/media/quotes/navoiy.png\"}")
-        assertEquals(
-            "https://timetable.gulistanps.uz/media/quotes/navoiy.png",
-            TabletJson.parse(withPhoto, "https://timetable.gulistanps.uz").quote?.image,
-        )
+    @Test
+    fun parsesLessonNumber() {
+        val entries = TabletJson.parse(sample).day.entries
+        assertEquals(4, entries[0].number)
+        assertNull(entries[1].number) // tushlik — null
+        assertNull(entries[2].number) // to'garak — maydon yo'q
     }
 
     @Test

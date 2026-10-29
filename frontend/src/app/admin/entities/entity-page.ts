@@ -433,8 +433,6 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
     fields: [
       { key: 'text', label: 'Matn', type: 'textarea', required: true, maxlength: 300 },
       { key: 'author', label: 'Muallif' },
-      { key: 'image', label: 'Muallif rasmi', type: 'image', column: false,
-        hint: "Iqtibosning chap tomonida. Bo'lmasa — bog'langan guruhning alloma rasmi." },
       { key: 'groups', label: 'Guruhlar', type: 'multi', options: 'groups',
         hint: "Tanlansa — faqat shu guruhlar darsi paytida. Tanlanmasa — umumiy: tanaffus va boshqa paytlarda." },
       { key: 'is_active', label: "Planshetda ko'rsatilsin", type: 'checkbox' },
