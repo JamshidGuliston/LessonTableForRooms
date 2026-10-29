@@ -305,7 +305,7 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
   quotes: {
     resource: 'quotes', title: "Hikmatli so'zlar", singular: "Hikmatli so'z",
     emptyTitle: "Hali hikmatli so'z qo'shilmagan",
-    emptyHint: "Planshetlarda darslar ro'yxatidan keyin ko'rsatiladi; bir nechta bo'lsa — har soatda navbatdagisi.",
+    emptyHint: "Planshetlarda darslar ro'yxatidan keyin ko'rsatiladi; bir nechta bo'lsa — har daqiqada navbatdagisi.",
     fields: [
       { key: 'text', label: 'Matn', type: 'textarea', required: true, maxlength: 300 },
       { key: 'author', label: 'Muallif' },

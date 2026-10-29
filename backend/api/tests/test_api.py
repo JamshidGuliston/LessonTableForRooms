@@ -380,11 +380,15 @@ class QuoteTests(APITestCase):
         res = self.client.post('/api/schools/a/quotes/', {'text': 'a' * 301})
         self.assertEqual(res.status_code, 400)
 
-    def test_quote_rotates_every_hour(self):
+    def test_quote_rotates_every_minute(self):
         from datetime import datetime
         from api.models import Quote
         from api.services import quote_for
         for t in ('A', 'B', 'C'):
             Quote.objects.create(school=self.school, text=t)
-        seen = {quote_for(self.school, datetime(2026, 10, 29, h))['text'] for h in (8, 9, 10)}
-        self.assertEqual(seen, {'A', 'B', 'C'})
+        seen = [quote_for(self.school, datetime(2026, 10, 29, 9, m))['text'] for m in (0, 1, 2, 3)]
+        self.assertEqual(set(seen[:3]), {'A', 'B', 'C'})
+        self.assertEqual(seen[3], seen[0])  # aylanib qaytadi
+        # bir daqiqa ichida o'zgarmaydi (planshet har 30 s so'raydi)
+        self.assertEqual(quote_for(self.school, datetime(2026, 10, 29, 9, 1, 0))['text'],
+                         quote_for(self.school, datetime(2026, 10, 29, 9, 1, 59))['text'])

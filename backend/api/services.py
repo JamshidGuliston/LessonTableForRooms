@@ -208,9 +208,14 @@ def _mark_statuses(entries, now):
             e['status'] = 'past'
 
 
+QUOTE_ROTATE_MINUTES = 1
+
+
 def quote_for(school, now):
-    """Hikmatli so'z: har soatda navbatdagisi, butun maktab bo'ylab bir xil."""
+    """Hikmatli so'z: har QUOTE_ROTATE_MINUTES daqiqada navbatdagisi, butun maktab bo'ylab bir xil.
+    Planshet har 30 s so'raydi — yangisi shu vaqt ichida ko'rinadi."""
     quotes = list(Quote.objects.filter(school=school, is_active=True).values('text', 'author'))
     if not quotes:
         return None
-    return quotes[(now.date().toordinal() * 24 + now.hour) % len(quotes)]
+    minute = (now.date().toordinal() * 24 + now.hour) * 60 + now.minute
+    return quotes[(minute // QUOTE_ROTATE_MINUTES) % len(quotes)]

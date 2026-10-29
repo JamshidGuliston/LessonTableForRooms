@@ -31,7 +31,7 @@ export interface TabletResponse {
   room: { id: number; name: string; floor: string };
   now: string; // maktab vaqti, ISO, zonasiz
   day: RoomDay;
-  /** Hikmatli so'z (har soatda navbatdagisi), admin qo'shmagan bo'lsa null */
+  /** Hikmatli so'z (har daqiqada navbatdagisi), admin qo'shmagan bo'lsa null */
   quote: Quote | null;
 }
 
