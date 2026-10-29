@@ -4,7 +4,8 @@ Planshet va boshqa frontendlar shu natijani ko'rsatadi. Kun holati:
   weekend  - dam olish kuni
   holiday  - ta'til (Break)
   exam     - imtihon davri: darslar to'xtatilgan, imtihonlar ko'rsatiladi
-  lesson   - oddiy o'quv kuni: darslar + tanaffuslar + to'garaklar
+  lesson   - oddiy o'quv kuni: darslar + tanaffuslar + to'garaklar;
+             xonada darsi yo'q dars soatlari "free" (Xona bo'sh) bo'lib ko'rsatiladi
   no_term  - kalendarda chorak yo'q
 """
 import os
@@ -13,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 
-from .models import Break, ClubSession, Exam, ExamSession, Lesson, Period, Term
+from .models import Break, ClubSession, Exam, ExamSession, Lesson, Period, Quote, Term
 
 
 def school_now(school):
@@ -74,14 +75,17 @@ def room_day(room, day, now=None, info=None):
         entries = [_lesson_entry(l) for l in _room_lessons(room, term, day)]
         entries += [_break_entry(p) for p in _break_periods(school)]
         entries += [_club_entry(c) for c in _room_clubs(room, term.academic_year_id, day)]
+        entries += [_free_entry(p) for p in _free_periods(school, entries)]
     else:
         return result
 
     entries.sort(key=lambda e: e['start_time'])
     _mark_statuses(entries, now if now.date() == day else None)
     result['entries'] = entries
-    result['current'] = next((e for e in entries if e['status'] == 'active'), None)
-    result['next'] = next((e for e in entries if e['status'] == 'upcoming'), None)
+    # Bo'sh soat — "hozir"/"keyingi" emas: planshet o'zi "Xona bo'sh" deb ko'rsatadi
+    busy = [e for e in entries if e['kind'] != 'free']
+    result['current'] = next((e for e in busy if e['status'] == 'active'), None)
+    result['next'] = next((e for e in busy if e['status'] == 'upcoming'), None)
     return result
 
 
@@ -104,6 +108,15 @@ def _room_lessons(room, term, day):
 
 def _break_periods(school):
     return Period.objects.filter(school=school).exclude(kind=Period.Kind.LESSON)
+
+
+def _free_periods(school, entries):
+    """Dars soatlari, ularda xonada hech narsa yo'q (dars ham, to'garak ham)."""
+    taken = [(e['start_time'], e['end_time']) for e in entries]
+    for p in Period.objects.filter(school=school, kind=Period.Kind.LESSON):
+        start, end = p.start_time.strftime('%H:%M'), p.end_time.strftime('%H:%M')
+        if not any(s < end and start < e for s, e in taken):
+            yield p
 
 
 def _room_clubs(room, academic_year_id, day):
@@ -153,6 +166,10 @@ def _break_entry(period):
     return _entry(period.kind, period.name, period.start_time, period.end_time)
 
 
+def _free_entry(period):
+    return _entry('free', "Xona bo'sh", period.start_time, period.end_time)
+
+
 def _club_entry(session):
     club = session.club
     return _entry(
@@ -189,3 +206,11 @@ def _mark_statuses(entries, now):
             e['status'] = 'active'
         else:
             e['status'] = 'past'
+
+
+def quote_for(school, now):
+    """Hikmatli so'z: har soatda navbatdagisi, butun maktab bo'ylab bir xil."""
+    quotes = list(Quote.objects.filter(school=school, is_active=True).values('text', 'author'))
+    if not quotes:
+        return None
+    return quotes[(now.date().toordinal() * 24 + now.hour) % len(quotes)]

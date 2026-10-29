@@ -12,6 +12,7 @@ from .models import (
     Group,
     Lesson,
     Period,
+    Quote,
     Room,
     School,
     SchoolMembership,
@@ -232,6 +233,15 @@ class LessonSerializer(SchoolScopedSerializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+
+class QuoteSerializer(SchoolScopedSerializer):
+    # Form-data da yuborilmagan checkbox DRF uchun False — yangi so'z sukut bo'yicha faol bo'lsin
+    is_active = serializers.BooleanField(default=True)
+
+    class Meta:
+        model = Quote
+        fields = ['id', 'text', 'author', 'is_active']
 
 
 class ClubSerializer(SchoolScopedSerializer):

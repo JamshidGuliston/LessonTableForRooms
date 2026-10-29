@@ -12,8 +12,10 @@ import { PageHead } from '../shell/page-head';
 export interface EntityField {
   key: string;
   label: string;
-  type?: 'text' | 'color' | 'number' | 'email' | 'tel';
+  type?: 'text' | 'color' | 'number' | 'email' | 'tel' | 'textarea' | 'checkbox';
   required?: boolean;
+  /** Matn uchun: belgilar chegarasi (hisoblagich bilan ko'rsatiladi) */
+  maxlength?: number;
   /** Jadvalda ustun sifatida ko'rsatilsinmi */
   column?: boolean;
 }
@@ -72,6 +74,8 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
                       <td [class.strong]="first">
                         @if (f.type === 'color') {
                           @if (r[f.key]) { <span class="swatch" [style.background]="r[f.key]"></span><span class="tnum muted">{{ r[f.key] }}</span> }
+                        } @else if (f.type === 'checkbox') {
+                          @if (r[f.key]) { <span class="pill">Ha</span> } @else { <span class="muted">Yo'q</span> }
                         } @else {
                           {{ r[f.key] ?? '' }}
                         }
@@ -111,6 +115,12 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
                       }
                       <input [id]="'f-' + f.key" class="input hex tnum" [name]="f.key" [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" placeholder="#RRGGBB" />
                     </div>
+                  } @else if (f.type === 'textarea') {
+                    <textarea [id]="'f-' + f.key" class="input" rows="5" [name]="f.key" [required]="!!f.required" [attr.maxlength]="f.maxlength ?? null"
+                              [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" [class.invalid]="!!errors()?.fields?.[f.key]"></textarea>
+                    @if (f.maxlength) { <div class="muted small count tnum">{{ length(d[f.key]) }} / {{ f.maxlength }}</div> }
+                  } @else if (f.type === 'checkbox') {
+                    <label class="check"><input type="checkbox" [id]="'f-' + f.key" [name]="f.key" [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" /> Ha</label>
                   } @else {
                     <input [id]="'f-' + f.key" class="input" [name]="f.key" [type]="f.type ?? 'text'" [required]="!!f.required"
                            [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" [class.invalid]="!!errors()?.fields?.[f.key]" />
@@ -138,6 +148,10 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
     .swatch.big { width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; margin: 0; }
     .swatch.big.on { border-color: var(--text); }
     .hex { width: 110px; }
+    textarea.input { resize: vertical; font: inherit; line-height: 1.4; }
+    .count { text-align: right; margin-top: 4px; }
+    .check { display: flex; gap: 8px; align-items: center; font-weight: 400; cursor: pointer; }
+    td { white-space: normal; }
   `,
 })
 export class EntityPage {
@@ -185,7 +199,7 @@ export class EntityPage {
 
   protected openNew() {
     this.errors.set(null);
-    this.draft.set(Object.fromEntries(this.config().fields.map((f) => [f.key, f.type === 'color' ? PALETTE[this.rows().length % PALETTE.length] : ''])));
+    this.draft.set(Object.fromEntries(this.config().fields.map((f) => [f.key, newValue(f, this.rows().length)])));
   }
 
   protected openEdit(r: Row) {
@@ -195,6 +209,10 @@ export class EntityPage {
 
   protected set(key: string, value: unknown) {
     this.draft.update((d) => (d ? { ...d, [key]: value } : d));
+  }
+
+  protected length(v: unknown): number {
+    return String(v ?? '').length;
   }
 
   protected close() {
@@ -208,6 +226,7 @@ export class EntityPage {
     this.saving.set(true);
     const body = Object.fromEntries(this.config().fields.map((f) => {
       const v = d[f.key];
+      if (f.type === 'checkbox') return [f.key, !!v];
       return [f.key, f.type === 'number' ? (v === '' || v === null ? null : Number(v)) : (v ?? '')];
     }));
     const slug = this.ctx.slug();
@@ -244,6 +263,12 @@ export class EntityPage {
   }
 }
 
+function newValue(f: EntityField, count: number): unknown {
+  if (f.type === 'color') return PALETTE[count % PALETTE.length];
+  if (f.type === 'checkbox') return true;
+  return '';
+}
+
 export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
   subjects: {
     resource: 'subjects', title: 'Fanlar', singular: 'Fan',
@@ -276,5 +301,15 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
     resource: 'groups', title: 'Guruhlar', singular: 'Guruh',
     emptyTitle: "Hali guruh qo'shilmagan", emptyHint: 'Masalan: 7-A, 9-B.',
     fields: [{ key: 'name', label: 'Nomi', required: true }],
+  },
+  quotes: {
+    resource: 'quotes', title: "Hikmatli so'zlar", singular: "Hikmatli so'z",
+    emptyTitle: "Hali hikmatli so'z qo'shilmagan",
+    emptyHint: "Planshetlarda darslar ro'yxatidan keyin ko'rsatiladi; bir nechta bo'lsa — har soatda navbatdagisi.",
+    fields: [
+      { key: 'text', label: 'Matn', type: 'textarea', required: true, maxlength: 300 },
+      { key: 'author', label: 'Muallif' },
+      { key: 'is_active', label: "Planshetda ko'rsatilsin", type: 'checkbox' },
+    ],
   },
 };

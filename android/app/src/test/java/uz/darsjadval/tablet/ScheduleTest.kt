@@ -50,6 +50,15 @@ class ScheduleTest {
     }
 
     @Test
+    fun freePeriodIsListedButNeverCurrentOrNext() {
+        val withFree = day.copy(entries = listOf(e("Xona bo'sh", "08:30", "09:15", EntryKind.FREE)) + day.entries.drop(1))
+        val snap = Schedule.snapshot(withFree, at("08:40"))
+        assertEquals(EntryStatus.ACTIVE, snap.entries.first().status)
+        assertNull(snap.current)
+        assertEquals("Tanaffus", snap.next?.title)
+    }
+
+    @Test
     fun beforeFirstEntryNothingIsCurrent() {
         val snap = Schedule.snapshot(day, at("07:00"))
         assertNull(snap.current)

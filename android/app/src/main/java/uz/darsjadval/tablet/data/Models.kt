@@ -7,7 +7,8 @@ import java.time.LocalDateTime
 
 enum class DayStatus { LESSON, EXAM, HOLIDAY, WEEKEND, NO_TERM }
 
-enum class EntryKind { LESSON, EXAM, COFFEE_BREAK, LUNCH, CLUB }
+/** FREE — dars soati, lekin xonada hech narsa yo'q ("Xona bo'sh") */
+enum class EntryKind { LESSON, EXAM, COFFEE_BREAK, LUNCH, CLUB, FREE }
 
 enum class EntryStatus { PAST, ACTIVE, UPCOMING }
 
@@ -38,7 +39,11 @@ data class TabletData(
     /** Maktab vaqt zonasi bo'yicha server vaqti (zonasiz) */
     val serverNow: LocalDateTime,
     val day: RoomDay,
+    /** Hikmatli so'z — darslar ro'yxatidan keyin ko'rsatiladi; admin qo'shmagan bo'lsa null */
+    val quote: Quote? = null,
 )
+
+data class Quote(val text: String, val author: String?)
 
 /** Kompyutersiz ulash: ekranda `code`, tokenni faqat `secret` bilan olamiz. */
 data class PairStart(val secret: String, val code: String)

@@ -354,3 +354,37 @@ class MultiValueLessonTests(APITestCase):
         copy = Lesson.objects.get(term=term2)
         self.assertEqual(copy.room_names, '201 / 203')
         self.assertEqual(copy.teachers.count(), 2)
+
+
+class QuoteTests(APITestCase):
+    def setUp(self):
+        self.school = make_school('a')
+        self.client.force_authenticate(make_admin(self.school))
+        self.room = make_room(self.school)
+
+    def tablet_quote(self):
+        return self.client.get(f'/api/tablet/{self.room.device_token}/').data['quote']
+
+    def test_admin_adds_quote_and_tablet_shows_it(self):
+        self.assertIsNone(self.tablet_quote())
+        text = "Yoshlar bizning tayanchimiz, ertangi kundan umidimiz, ezgu ishlarimiz davomchisidir"
+        res = self.client.post('/api/schools/a/quotes/', {'text': text, 'author': 'Sh. Mirziyoyev'})
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(self.tablet_quote(), {'text': text, 'author': 'Sh. Mirziyoyev'})
+
+    def test_inactive_quote_is_hidden(self):
+        self.client.post('/api/schools/a/quotes/', {'text': 'X', 'is_active': False})
+        self.assertIsNone(self.tablet_quote())
+
+    def test_too_long_quote_is_rejected(self):
+        res = self.client.post('/api/schools/a/quotes/', {'text': 'a' * 301})
+        self.assertEqual(res.status_code, 400)
+
+    def test_quote_rotates_every_hour(self):
+        from datetime import datetime
+        from api.models import Quote
+        from api.services import quote_for
+        for t in ('A', 'B', 'C'):
+            Quote.objects.create(school=self.school, text=t)
+        seen = {quote_for(self.school, datetime(2026, 10, 29, h))['text'] for h in (8, 9, 10)}
+        self.assertEqual(seen, {'A', 'B', 'C'})

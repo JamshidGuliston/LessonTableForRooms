@@ -19,8 +19,9 @@ function entry(over: Partial<DayEntry>): DayEntry {
   };
 }
 
-function response(over: Partial<TabletResponse['day']>): TabletResponse {
+function response(over: Partial<TabletResponse['day']>, quote: TabletResponse['quote'] = null): TabletResponse {
   return {
+    quote,
     school: { slug: 'demo', name: 'Demo maktab', timezone: 'Asia/Tashkent', working_days: '0,1,2,3,4,5' },
     room: { id: 1, name: '101', floor: '1' },
     now: '2025-10-20T09:35:00',
@@ -112,6 +113,24 @@ describe('TabletPage', () => {
     expect(el.querySelector('.entry.club .kind')?.textContent).toContain("To'garak");
     expect(el.querySelector('.hero')?.classList).toContain('club');
     expect(el.querySelector('.hero .hero-title')?.textContent).toContain('Shaxmat');
+  });
+
+  it('lists empty lesson periods as "Bo\'sh"', async () => {
+    const free = entry({ kind: 'free', title: "Xona bo'sh", group: null, teacher: null, start_time: '14:50', end_time: '15:35' });
+    const el = await render(response({ entries: [entry({}), free] }));
+    expect(el.querySelector('.entry.free .title')?.textContent).toContain("Xona bo'sh");
+    expect(el.querySelector('.entry.free .kind')?.textContent).toContain("Bo'sh");
+  });
+
+  it('shows the quote with its author after the list', async () => {
+    const el = await render(response({ entries: [entry({})] }, { text: 'Yoshlar bizning tayanchimiz', author: 'Sh. Mirziyoyev' }));
+    expect(el.querySelector('.quote blockquote')?.textContent).toContain('Yoshlar bizning tayanchimiz');
+    expect(el.querySelector('.quote figcaption')?.textContent).toContain('Sh. Mirziyoyev');
+  });
+
+  it('shows no quote block when the school has none', async () => {
+    const el = await render(response({}));
+    expect(el.querySelector('.quote')).toBeNull();
   });
 
   it('shows an error state when the token is unknown', async () => {

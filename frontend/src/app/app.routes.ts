@@ -40,6 +40,7 @@ export const routes: Routes = [
       { path: 'teachers', component: EntityPage, data: { config: ENTITY_CONFIGS['teachers'] }, title: "O'qituvchilar · DarsJadval" },
       { path: 'rooms', component: EntityPage, data: { config: ENTITY_CONFIGS['rooms'] }, title: 'Xonalar · DarsJadval' },
       { path: 'groups', component: EntityPage, data: { config: ENTITY_CONFIGS['groups'] }, title: 'Guruhlar · DarsJadval' },
+      { path: 'quotes', component: EntityPage, data: { config: ENTITY_CONFIGS['quotes'] }, title: "Hikmatli so'zlar · DarsJadval" },
       { path: 'tablets', component: TabletsPage, title: 'Planshetlar · DarsJadval' },
       { path: 'settings', component: SettingsPage, title: 'Sozlamalar · DarsJadval' },
     ],

@@ -10,6 +10,7 @@ from .models import (
     Group,
     Lesson,
     Period,
+    Quote,
     Room,
     School,
     SchoolMembership,
@@ -111,3 +112,9 @@ class ClubSessionAdmin(SchoolOwnedAdmin):
 class ExamAdmin(SchoolOwnedAdmin):
     list_display = ['date', 'start_time', 'end_time', 'room', 'subject', 'group', 'exam_session']
     list_filter = ['school', 'exam_session', 'room', 'group']
+
+
+@admin.register(Quote)
+class QuoteAdmin(SchoolOwnedAdmin):
+    list_display = ['text', 'author', 'is_active', 'school']
+    list_filter = ['school', 'is_active']

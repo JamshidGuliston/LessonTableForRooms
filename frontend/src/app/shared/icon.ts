@@ -12,6 +12,7 @@ const PATHS: Record<string, string> = {
   door: 'M5 21V3h11v18M3 21h18M12 12h.01',
   layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5',
   tablet: 'M6 2h12v20H6zM11 18h2',
+  quote: 'M4 11h5v7H4zM4 11c0-3 1-5 4-6M14 11h5v7h-5zM14 11c0-3 1-5 4-6',
   sliders: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',
   star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
   plus: 'M12 5v14M5 12h14',

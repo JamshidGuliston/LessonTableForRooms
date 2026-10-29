@@ -67,6 +67,13 @@
       }
     </ul>
   }
+
+  @if (d.quote; as q) {
+    <figure class="quote" [class.long]="q.text.length > 140">
+      <blockquote>{{ q.text }}</blockquote>
+      @if (q.author) { <figcaption>{{ q.author }}</figcaption> }
+    </figure>
+  }
 } @else {
   <div class="loading">Yuklanmoqda…</div>
 }

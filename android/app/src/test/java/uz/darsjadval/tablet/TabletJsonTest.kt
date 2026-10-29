@@ -26,10 +26,13 @@ class TabletJsonTest {
               {"kind": "lunch", "title": "Tushlik", "start_time": "11:05", "end_time": "11:45",
                "group": null, "teacher": null, "subject_color": null, "status": "upcoming"},
               {"kind": "club", "title": "Shaxmat", "start_time": "14:30", "end_time": "16:00",
-               "group": null, "teacher": "Rahimov S.", "subject_color": null, "status": "upcoming"}
+               "group": null, "teacher": "Rahimov S.", "subject_color": null, "status": "upcoming"},
+              {"kind": "free", "title": "Xona bo'sh", "start_time": "16:00", "end_time": "16:45",
+               "group": null, "teacher": null, "subject_color": null, "status": "upcoming"}
             ],
             "current": null, "next": null
-          }
+          },
+          "quote": {"text": "Yoshlar bizning tayanchimiz", "author": "Sh. Mirziyoyev"}
         }
     """.trimIndent()
 
@@ -46,7 +49,7 @@ class TabletJsonTest {
         val day = TabletJson.parse(sample).day
         assertEquals(LocalDate.of(2025, 10, 20), day.date)
         assertEquals(DayStatus.LESSON, day.status)
-        assertEquals(3, day.entries.size)
+        assertEquals(4, day.entries.size)
 
         val tarix = day.entries[0]
         assertEquals(EntryKind.LESSON, tarix.kind)
@@ -64,6 +67,19 @@ class TabletJsonTest {
         assertNull(lunch.color)
 
         assertEquals(EntryKind.CLUB, day.entries[2].kind)
+    }
+
+    @Test
+    fun parsesFreePeriodAndQuote() {
+        val data = TabletJson.parse(sample)
+        assertEquals(EntryKind.FREE, data.day.entries.last().kind)
+        assertEquals("Yoshlar bizning tayanchimiz", data.quote?.text)
+        assertEquals("Sh. Mirziyoyev", data.quote?.author)
+    }
+
+    @Test
+    fun nullQuoteIsNull() {
+        assertNull(TabletJson.parse(sample.replace(Regex("\"quote\": \\{[^}]*\\}"), "\"quote\": null")).quote)
     }
 
     @Test

@@ -450,3 +450,19 @@ class ClubSession(SchoolOwnedModel):
         if other:
             return f'{other.club} {other.start_time:%H:%M}-{other.end_time:%H:%M}'
         return None
+
+
+class Quote(SchoolOwnedModel):
+    """Hikmatli so'z: planshetda darslar ro'yxatidan keyingi bo'sh joyda ko'rsatiladi."""
+
+    MAX_LENGTH = 300
+
+    text = models.TextField(max_length=MAX_LENGTH)
+    author = models.CharField(max_length=100, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.text[:60]

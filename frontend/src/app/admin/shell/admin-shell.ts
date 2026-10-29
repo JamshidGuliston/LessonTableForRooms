@@ -18,6 +18,7 @@ const NAV = [
   { path: 'teachers', label: "O'qituvchilar", icon: 'users' },
   { path: 'rooms', label: 'Xonalar', icon: 'door' },
   { path: 'groups', label: 'Guruhlar', icon: 'layers' },
+  { path: 'quotes', label: "Hikmatli so'zlar", icon: 'quote' },
   { path: 'tablets', label: 'Planshetlar', icon: 'tablet' },
   { path: 'settings', label: 'Sozlamalar', icon: 'sliders' },
 ];

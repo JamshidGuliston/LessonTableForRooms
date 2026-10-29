@@ -35,6 +35,7 @@ fun kindColors(kind: EntryKind): KindColors = when (kind) {
     EntryKind.LUNCH -> KindColors(Color(0xFF2DD4BF), Color(0xFF0F766E), Color(0xFFE0F7F4))
     EntryKind.EXAM -> KindColors(Color(0xFFF59E0B), Color(0xFFB45309), Color(0xFFFEF3DC))
     EntryKind.CLUB -> KindColors(Color(0xFFA78BFA), Color(0xFF6D28D9), Color(0xFFF1ECFE))
+    EntryKind.FREE -> KindColors(Palette.border, Palette.muted, Palette.surface2)
 }
 
 fun kindLabel(kind: EntryKind) = when (kind) {
@@ -43,6 +44,7 @@ fun kindLabel(kind: EntryKind) = when (kind) {
     EntryKind.COFFEE_BREAK -> "TANAFFUS"
     EntryKind.LUNCH -> "TUSHLIK"
     EntryKind.CLUB -> "TO'GARAK"
+    EntryKind.FREE -> "BO'SH"
 }
 
 fun dayStateTitle(status: DayStatus, title: String) = when (status) {

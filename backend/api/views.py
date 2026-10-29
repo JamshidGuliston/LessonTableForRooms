@@ -23,6 +23,7 @@ from .models import (
     Group,
     Lesson,
     Period,
+    Quote,
     Room,
     TabletPairing,
     School,
@@ -32,7 +33,7 @@ from .models import (
     Term,
 )
 from .permissions import IsSchoolMember
-from .services import day_info, room_day, school_now
+from .services import day_info, quote_for, room_day, school_now
 
 
 def _parse_date(value, default):
@@ -94,6 +95,7 @@ class TabletView(APIView):
             'room': {'id': room.id, 'name': room.name, 'floor': room.floor},
             'now': now.isoformat(timespec='seconds'),
             'day': room_day(room, day, now=now),
+            'quote': quote_for(room.school, now),
         })
 
 
@@ -382,6 +384,12 @@ class LessonViewSet(SchoolScopedViewSet):
                     getattr(copy, name).set(getattr(lesson, name).all())
                 copied += 1
         return Response({'copied': copied}, status=status.HTTP_201_CREATED)
+
+
+class QuoteViewSet(SchoolScopedViewSet):
+    queryset = Quote.objects.all()
+    serializer_class = ser.QuoteSerializer
+    filter_params = ('is_active',)
 
 
 class ClubViewSet(SchoolScopedViewSet):

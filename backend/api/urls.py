@@ -19,6 +19,7 @@ router.register(f'{SCHOOL}/lessons', views.LessonViewSet, basename='lesson')
 router.register(f'{SCHOOL}/exams', views.ExamViewSet, basename='exam')
 router.register(f'{SCHOOL}/clubs', views.ClubViewSet, basename='club')
 router.register(f'{SCHOOL}/club-sessions', views.ClubSessionViewSet, basename='club-session')
+router.register(f'{SCHOOL}/quotes', views.QuoteViewSet, basename='quote')
 router.register(f'{SCHOOL}/members', views.MemberViewSet, basename='member')
 
 urlpatterns = [

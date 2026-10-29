@@ -1,7 +1,8 @@
 // Backend `api/services.py` dagi room_day() natijasi bilan bir xil shakl.
 
 export type DayStatus = 'lesson' | 'exam' | 'holiday' | 'weekend' | 'no_term';
-export type EntryKind = 'lesson' | 'exam' | 'coffee_break' | 'lunch' | 'club';
+/** free — dars soati, lekin xonada hech narsa yo'q ("Xona bo'sh") */
+export type EntryKind = 'lesson' | 'exam' | 'coffee_break' | 'lunch' | 'club' | 'free';
 export type EntryStatus = 'past' | 'active' | 'upcoming';
 
 export interface DayEntry {
@@ -30,4 +31,11 @@ export interface TabletResponse {
   room: { id: number; name: string; floor: string };
   now: string; // maktab vaqti, ISO, zonasiz
   day: RoomDay;
+  /** Hikmatli so'z (har soatda navbatdagisi), admin qo'shmagan bo'lsa null */
+  quote: Quote | null;
+}
+
+export interface Quote {
+  text: string;
+  author: string;
 }

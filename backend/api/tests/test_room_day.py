@@ -61,6 +61,7 @@ class RoomDayStatusTests(TestCase):
             [
                 ('lesson', 'Matematika'),
                 ('coffee_break', 'Tanaffus'),
+                ('free', "Xona bo'sh"),  # 2-dars: bu xonada dars yo'q
                 ('lunch', 'Tushlik'),
                 ('lesson', 'Fizika'),
             ],
@@ -117,12 +118,12 @@ class RoomDayNowTests(TestCase):
         return [e['status'] for e in room_day(self.room, MONDAY, now=now)['entries']]
 
     def test_entry_in_progress_is_active(self):
-        # 09:35 — 2-dars (09:30–10:15) davom etmoqda
-        self.assertEqual(self.statuses(time(9, 35)), ['past', 'past', 'active', 'upcoming'])
+        # 09:35 — 2-dars (09:30–10:15) davom etmoqda; oxirgisi — bo'sh 3-dars
+        self.assertEqual(self.statuses(time(9, 35)), ['past', 'past', 'active', 'upcoming', 'upcoming'])
 
     def test_start_time_is_inclusive_end_time_exclusive(self):
-        self.assertEqual(self.statuses(time(8, 30)), ['active', 'upcoming', 'upcoming', 'upcoming'])
-        self.assertEqual(self.statuses(time(9, 15)), ['past', 'active', 'upcoming', 'upcoming'])
+        self.assertEqual(self.statuses(time(8, 30)), ['active', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+        self.assertEqual(self.statuses(time(9, 15)), ['past', 'active', 'upcoming', 'upcoming', 'upcoming'])
 
     def test_current_and_next_entries_are_exposed_at_top_level(self):
         now = datetime.combine(MONDAY, time(9, 35))
@@ -141,3 +142,29 @@ class RoomDayNowTests(TestCase):
         day = room_day(self.room, MONDAY, now=now)
         self.assertIsNone(day['current'])
         self.assertIsNone(day['next'])
+
+
+class FreePeriodTests(TestCase):
+    """Darsi yo'q dars soati — "Xona bo'sh"; lekin u "hozir"/"keyingi" emas."""
+
+    def setUp(self):
+        self.school = make_school()
+        _, self.term, _ = make_calendar(self.school)
+        self.periods = make_periods(self.school)
+        self.room = make_room(self.school)
+        make_lesson(self.school, self.term, self.room, self.periods[2], weekday=0)
+
+    def test_free_period_is_not_current_or_next(self):
+        day = room_day(self.room, MONDAY, now=datetime.combine(MONDAY, time(8, 40)))
+        free = day['entries'][0]
+        self.assertEqual((free['kind'], free['status']), ('free', 'active'))
+        self.assertIsNone(day['current'])
+        self.assertEqual(day['next']['title'], 'Tanaffus')
+
+    def test_club_in_lesson_period_is_not_free(self):
+        from api.models import Club, ClubSession
+        club = Club.objects.create(school=self.school, name='Shaxmat')
+        ClubSession.objects.create(school=self.school, club=club, academic_year=self.term.academic_year, weekday=0,
+                                   start_time=time(10, 50), end_time=time(11, 20), room=self.room)
+        kinds = [e['kind'] for e in room_day(self.room, MONDAY)['entries']]
+        self.assertEqual(kinds, ['free', 'coffee_break', 'lesson', 'lunch', 'club'])

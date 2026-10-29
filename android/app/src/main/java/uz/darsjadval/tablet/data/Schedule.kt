@@ -35,7 +35,9 @@ object Schedule {
             Item(e, status)
         }
 
-        val current = items.firstOrNull { it.status == EntryStatus.ACTIVE }?.entry?.let { e ->
+        // Bo'sh soat "hozir"/"keyingi" emas — hero "Xona bo'sh" va keyingi haqiqiy mashg'ulotni ko'rsatadi
+        val busy = items.filter { it.entry.kind != EntryKind.FREE }
+        val current = busy.firstOrNull { it.status == EntryStatus.ACTIVE }?.entry?.let { e ->
             val total = (e.endMin - e.startMin) * 60
             val left = e.endMin * 60 - nowSec
             Current(
@@ -46,11 +48,12 @@ object Schedule {
         }
         val nextIndex = items.indexOfFirst { it.status == EntryStatus.UPCOMING }
         val currentIndex = items.indexOfFirst { it.status == EntryStatus.ACTIVE }
+        val next = busy.firstOrNull { it.status == EntryStatus.UPCOMING }?.entry
 
         return Snapshot(
             entries = items,
             current = current,
-            next = items.getOrNull(nextIndex)?.entry,
+            next = next,
             focusIndex = when {
                 currentIndex >= 0 -> currentIndex
                 nextIndex >= 0 -> nextIndex

@@ -54,6 +54,7 @@ import uz.darsjadval.tablet.data.DayEntry
 import uz.darsjadval.tablet.data.DayStatus
 import uz.darsjadval.tablet.data.EntryKind
 import uz.darsjadval.tablet.data.EntryStatus
+import uz.darsjadval.tablet.data.Quote
 import uz.darsjadval.tablet.data.Schedule
 import uz.darsjadval.tablet.data.TabletData
 
@@ -121,7 +122,7 @@ private fun Schedule(data: TabletData, state: UiState) {
                     }
                 }
                 Spacer(Modifier.height(d.dp(20)))
-                DayList(snap)
+                DayList(snap, data.quote)
             }
             else -> DayOff(day.status, day.title, day.resumesOn)
         }
@@ -352,7 +353,7 @@ private fun ProgressBar(progress: Float, color: Color) {
 // ───────────────────────────── Kun ro'yxati ─────────────────────────────
 
 @Composable
-private fun DayList(snap: Schedule.Snapshot) {
+private fun DayList(snap: Schedule.Snapshot, quote: Quote?) {
     val d = LocalDims.current
     if (snap.entries.isEmpty()) {
         Text(
@@ -365,6 +366,10 @@ private fun DayList(snap: Schedule.Snapshot) {
                 .padding(top = d.dp(40)),
             textAlign = TextAlign.Center,
         )
+        quote?.let {
+            Spacer(Modifier.height(d.dp(24)))
+            QuoteCard(it)
+        }
         return
     }
     // Ekran sensorsiz — ro'yxat o'zi joriy qatorga suriladi (bitta o'tgan qator ko'rinib turadi).
@@ -381,6 +386,49 @@ private fun DayList(snap: Schedule.Snapshot) {
         itemsIndexed(snap.entries, key = { i, it -> "$i-${it.entry.startMin}-${it.entry.title}" }) { _, item ->
             EntryRow(item)
         }
+        // Darslardan keyingi bo'sh joyda — kun oxirida ro'yxat shu yerga suriladi
+        quote?.let { q -> item(key = "quote") { QuoteCard(q, Modifier.padding(top = d.dp(16))) } }
+    }
+}
+
+@Composable
+private fun QuoteCard(quote: Quote, modifier: Modifier = Modifier) {
+    val d = LocalDims.current
+    val shape = RoundedCornerShape(d.dp(20))
+    // Uzun matn kichikroq shriftda — 300 belgigacha sig'ishi kerak
+    val size = if (quote.text.length > 140) 26 else 34
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Palette.surface)
+            .border(1.dp, Palette.border, shape)
+            .padding(horizontal = d.dp(40), vertical = d.dp(28)),
+    ) {
+        Text(
+            "\u201C${quote.text.uppercase()}\u201D",
+            fontFamily = Inter,
+            fontSize = d.sp(size),
+            lineHeight = d.sp(size * 1.3f),
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.02.em,
+            color = Palette.primaryText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        quote.author?.let {
+            Spacer(Modifier.height(d.dp(14)))
+            Text(
+                it.uppercase(),
+                fontFamily = Inter,
+                fontSize = d.sp(20),
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.08.em,
+                color = Palette.muted,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -390,6 +438,7 @@ private fun EntryRow(item: Schedule.Item) {
     val e = item.entry
     val c = kindColors(e.kind)
     val isBreak = e.kind == EntryKind.COFFEE_BREAK || e.kind == EntryKind.LUNCH
+    val isFree = e.kind == EntryKind.FREE
     val active = item.status == EntryStatus.ACTIVE
     val radius = d.dp(12)
     val shape = RoundedCornerShape(radius)
@@ -401,13 +450,14 @@ private fun EntryRow(item: Schedule.Item) {
         .background(
             when {
                 active && e.kind == EntryKind.EXAM -> c.tint
+                isFree -> Palette.surface2
                 active || !isBreak -> Palette.surface
                 else -> Palette.surface2
             },
         )
     val bordered = when {
-        active -> base.border(2.dp, c.accent, shape)
-        isBreak -> base.dashedBorder(Palette.border, radius)
+        active && !isFree -> base.border(2.dp, c.accent, shape)
+        isBreak || isFree -> base.dashedBorder(Palette.border, radius)
         else -> base.border(1.dp, Palette.border, shape)
     }
 
@@ -438,7 +488,7 @@ private fun EntryRow(item: Schedule.Item) {
                 fontFamily = Inter,
                 fontSize = d.sp(22),
                 fontWeight = FontWeight.SemiBold,
-                color = if (isBreak) c.text else Palette.text,
+                color = if (isBreak || isFree) c.text else Palette.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

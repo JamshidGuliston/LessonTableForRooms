@@ -16,6 +16,7 @@ const KIND_LABEL: Record<EntryKind, string> = {
   coffee_break: 'Tanaffus',
   lunch: 'Tushlik',
   club: 'To\'garak',
+  free: 'Bo\'sh',
 };
 
 const WEEKDAYS = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'];

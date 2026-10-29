@@ -35,6 +35,7 @@ object TabletJson {
                 resumesOn = day.nullableString("resumes_on")?.let(LocalDate::parse),
                 entries = (0 until (entries?.length() ?: 0)).map { entry(entries!!.getJSONObject(it)) },
             ),
+            quote = root.optJSONObject("quote")?.let { Quote(text = it.optString("text"), author = it.nullableString("author")) },
         )
     }
 
@@ -59,6 +60,7 @@ object TabletJson {
         "coffee_break" -> EntryKind.COFFEE_BREAK
         "lunch" -> EntryKind.LUNCH
         "club" -> EntryKind.CLUB
+        "free" -> EntryKind.FREE
         else -> EntryKind.LESSON
     }
 
