@@ -22,7 +22,8 @@ class TabletJsonTest {
             "date": "2025-10-20", "weekday": 0, "status": "lesson", "title": "1-chorak", "resumes_on": null,
             "entries": [
               {"kind": "lesson", "title": "Tarix", "start_time": "10:20", "end_time": "11:05",
-               "group": "9-A", "teacher": "Nazarova Gulnora", "subject_color": "#F97316", "status": "active"},
+               "group": "9-A", "teacher": "Nazarova Gulnora", "subject_color": "#F97316", "status": "active",
+               "image": "/media/groups/beruniy.jpg", "group_ids": [3]},
               {"kind": "lunch", "title": "Tushlik", "start_time": "11:05", "end_time": "11:45",
                "group": null, "teacher": null, "subject_color": null, "status": "upcoming"},
               {"kind": "club", "title": "Shaxmat", "start_time": "14:30", "end_time": "16:00",
@@ -32,7 +33,7 @@ class TabletJsonTest {
             ],
             "current": null, "next": null
           },
-          "quote": {"text": "Yoshlar bizning tayanchimiz", "author": "Sh. Mirziyoyev"}
+          "quote": {"text": "Yoshlar bizning tayanchimiz", "author": "Sh. Mirziyoyev", "image": null}
         }
     """.trimIndent()
 
@@ -75,6 +76,20 @@ class TabletJsonTest {
         assertEquals(EntryKind.FREE, data.day.entries.last().kind)
         assertEquals("Yoshlar bizning tayanchimiz", data.quote?.text)
         assertEquals("Sh. Mirziyoyev", data.quote?.author)
+    }
+
+    @Test
+    fun resolvesImageUrlsAgainstServer() {
+        val data = TabletJson.parse(sample, "https://timetable.gulistanps.uz/")
+        assertEquals("https://timetable.gulistanps.uz/media/groups/beruniy.jpg", data.day.entries[0].image)
+        assertNull(data.day.entries[1].image)
+        assertNull(data.quote?.image)
+
+        val withPhoto = sample.replace("\"image\": null}", "\"image\": \"/media/quotes/navoiy.png\"}")
+        assertEquals(
+            "https://timetable.gulistanps.uz/media/quotes/navoiy.png",
+            TabletJson.parse(withPhoto, "https://timetable.gulistanps.uz").quote?.image,
+        )
     }
 
     @Test

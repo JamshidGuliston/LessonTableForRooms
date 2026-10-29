@@ -17,14 +17,21 @@
   @if (day()?.status === 'lesson' || day()?.status === 'exam') {
     @if (hero(); as cur) {
       <section class="hero" [class.exam]="cur.kind === 'exam'" [class.club]="cur.kind === 'club'" [class.break]="cur.kind === 'coffee_break' || cur.kind === 'lunch'">
-        <div class="hero-kind">{{ kindLabel(cur.kind) }} · {{ cur.start_time }}–{{ cur.end_time }}</div>
-        <div class="hero-title">{{ cur.title }}</div>
-        @if (cur.group || cur.teacher) {
-          <div class="hero-sub">
-            @if (cur.group) { <span class="group">{{ cur.group }}</span> }
-            @if (cur.teacher) { <span class="teacher">{{ cur.teacher }}</span> }
+        <div class="hero-top">
+          <div class="hero-main">
+            <div class="hero-kind">{{ kindLabel(cur.kind) }} · {{ cur.start_time }}–{{ cur.end_time }}</div>
+            <div class="hero-title">{{ cur.title }}</div>
+            @if (cur.group || cur.teacher) {
+              <div class="hero-sub">
+                @if (cur.group) { <span class="group">{{ cur.group }}</span> }
+                @if (cur.teacher) { <span class="teacher">{{ cur.teacher }}</span> }
+              </div>
+            }
           </div>
-        }
+          @if (cur.image) {
+            <img class="portrait" [src]="cur.image" [alt]="cur.group ?? ''" />
+          }
+        </div>
         <div class="progress"><div class="bar" [style.width.%]="progress()"></div></div>
         <div class="hero-footer">
           @if (minutesLeft() !== null) {
@@ -69,9 +76,12 @@
   }
 
   @if (d.quote; as q) {
-    <figure class="quote" [class.long]="q.text.length > 140">
-      <blockquote>{{ q.text }}</blockquote>
-      @if (q.author) { <figcaption>{{ q.author }}</figcaption> }
+    <figure class="quote" [class.long]="q.text.length > 140" [class.with-image]="!!q.image">
+      @if (q.image) { <img class="author-photo" [src]="q.image" [alt]="q.author" /> }
+      <div class="quote-body">
+        <blockquote>{{ q.text }}</blockquote>
+        @if (q.author) { <figcaption>{{ q.author }}</figcaption> }
+      </div>
     </figure>
   }
 } @else {

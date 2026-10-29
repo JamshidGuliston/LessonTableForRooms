@@ -17,6 +17,10 @@ echo "== Backend"
 cd "$REPO/backend"
 [ -f .env ] || { echo "backend/.env yo'q — deploy/cpanel/env.example dan nusxa oling"; exit 1; }
 [ -f "$REPO/.htaccess" ] || { echo "$REPO/.htaccess yo'q — kod internetga ochiq qolardi"; exit 1; }
+# Yuklangan rasmlar (alloma, muallif) domen papkasida — Apache o'zi beradi. Eski .env da bo'lmasa qo'shamiz.
+grep -q '^DJANGO_MEDIA_ROOT=' .env || printf '\nDJANGO_MEDIA_ROOT=%s/media\n' "$APP" >> .env
+mkdir -p "$APP/media"
+cp "$REPO/deploy/cpanel/media.htaccess" "$APP/media/.htaccess"
 "$PY" -m pip install -q -r requirements.txt
 "$PY" manage.py migrate --noinput
 "$PY" manage.py collectstatic --noinput

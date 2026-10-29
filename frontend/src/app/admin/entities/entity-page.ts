@@ -12,8 +12,13 @@ import { PageHead } from '../shell/page-head';
 export interface EntityField {
   key: string;
   label: string;
-  type?: 'text' | 'color' | 'number' | 'email' | 'tel' | 'textarea' | 'checkbox';
+  /** image — rasm yuklash (alohida multipart so'rov); multi — `options` resursidan bir nechtasini tanlash */
+  type?: 'text' | 'color' | 'number' | 'email' | 'tel' | 'textarea' | 'checkbox' | 'image' | 'multi';
   required?: boolean;
+  /** multi uchun: tanlovlar olinadigan resurs (masalan 'groups'), ko'rinadigan nom — `name` */
+  options?: string;
+  /** Maydon ostidagi izoh */
+  hint?: string;
   /** Matn uchun: belgilar chegarasi (hisoblagich bilan ko'rsatiladi) */
   maxlength?: number;
   /** Jadvalda ustun sifatida ko'rsatilsinmi */
@@ -76,6 +81,10 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
                           @if (r[f.key]) { <span class="swatch" [style.background]="r[f.key]"></span><span class="tnum muted">{{ r[f.key] }}</span> }
                         } @else if (f.type === 'checkbox') {
                           @if (r[f.key]) { <span class="pill">Ha</span> } @else { <span class="muted">Yo'q</span> }
+                        } @else if (f.type === 'image') {
+                          @if (r[f.key]) { <img class="thumb" [src]="r[f.key]" alt="" /> } @else { <span class="muted">—</span> }
+                        } @else if (f.type === 'multi') {
+                          @if (optionNames(f, r[f.key]); as names) { {{ names }} } @else { <span class="muted">Umumiy</span> }
                         } @else {
                           {{ r[f.key] ?? '' }}
                         }
@@ -121,10 +130,38 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
                     @if (f.maxlength) { <div class="muted small count tnum">{{ length(d[f.key]) }} / {{ f.maxlength }}</div> }
                   } @else if (f.type === 'checkbox') {
                     <label class="check"><input type="checkbox" [id]="'f-' + f.key" [name]="f.key" [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" /> Ha</label>
+                  } @else if (f.type === 'image') {
+                    <div class="image-field">
+                      @if (imagePreview(f.key, d); as src) {
+                        <img class="preview" [src]="src" alt="" />
+                      } @else {
+                        <div class="preview empty"><app-icon name="image" [size]="28" /></div>
+                      }
+                      <div class="image-actions">
+                        <label class="btn sm">
+                          <input type="file" accept="image/png,image/jpeg,image/webp" hidden [id]="'f-' + f.key" (change)="pickImage(f.key, $event)" />
+                          {{ imagePreview(f.key, d) ? 'Almashtirish' : 'Rasm yuklash' }}
+                        </label>
+                        @if (imagePreview(f.key, d)) {
+                          <button class="btn sm link danger" type="button" (click)="clearImage(f.key)">Olib tashlash</button>
+                        }
+                      </div>
+                    </div>
+                  } @else if (f.type === 'multi') {
+                    <div class="chips-select">
+                      @for (o of options()[f.options!] ?? []; track o.id) {
+                        <label class="chip-check" [class.on]="isPicked(d[f.key], o.id)">
+                          <input type="checkbox" [checked]="isPicked(d[f.key], o.id)" (change)="toggle(f.key, o.id)" /> {{ o.name }}
+                        </label>
+                      } @empty {
+                        <span class="muted small">Tanlash uchun hali hech narsa yo'q</span>
+                      }
+                    </div>
                   } @else {
                     <input [id]="'f-' + f.key" class="input" [name]="f.key" [type]="f.type ?? 'text'" [required]="!!f.required"
                            [ngModel]="d[f.key]" (ngModelChange)="set(f.key, $event)" [class.invalid]="!!errors()?.fields?.[f.key]" />
                   }
+                  @if (f.hint) { <div class="muted small hint">{{ f.hint }}</div> }
                   @if (errors()?.fields?.[f.key]; as m) { <div class="error">{{ m }}</div> }
                 </div>
               }
@@ -152,6 +189,18 @@ const PALETTE = ['#2563EB', '#7C3AED', '#DB2777', '#DC2626', '#EA580C', '#D97706
     .count { text-align: right; margin-top: 4px; }
     .check { display: flex; gap: 8px; align-items: center; font-weight: 400; cursor: pointer; }
     td { white-space: normal; }
+    .thumb { width: 36px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); vertical-align: middle; }
+    .image-field { display: flex; gap: 14px; align-items: center; }
+    .preview { width: 96px; height: 116px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
+    .preview.empty { display: grid; place-items: center; color: var(--faint); }
+    .image-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+    .image-actions label.btn { cursor: pointer; }
+    .chips-select { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip-check { display: inline-flex; gap: 6px; align-items: center; padding: 5px 10px; border: 1px solid var(--border);
+      border-radius: 999px; font-weight: 400; font-size: 13px; cursor: pointer; }
+    .chip-check.on { border-color: var(--primary); background: var(--primary-tint); color: var(--primary-text); }
+    .chip-check input { margin: 0; }
+    .hint { margin-top: 4px; }
   `,
 })
 export class EntityPage {
@@ -169,6 +218,11 @@ export class EntityPage {
   protected readonly errors = signal<ApiErrors | null>(null);
   protected readonly saving = signal(false);
   protected readonly palette = PALETTE;
+  /** multi maydonlar uchun tanlovlar: resurs → [{id, name}] */
+  protected readonly options = signal<Partial<Record<string, Option[]>>>({});
+  /** Rasm o'zgarishi: kalit yo'q — tegilmagan, null — olib tashlash, File — yangi rasm */
+  private readonly pendingImages = signal<Record<string, File | null>>({});
+  private readonly previews = signal<Record<string, string>>({});
 
   protected readonly columns = computed(() => this.config().fields.filter((f) => f.column !== false));
   protected readonly filtered = computed(() => {
@@ -189,7 +243,13 @@ export class EntityPage {
   private async load(slug: string, resource: string) {
     this.loading.set(true);
     try {
-      this.rows.set(await this.api.list<Row>(slug, resource));
+      const sources = [...new Set(this.config().fields.filter((f) => f.type === 'multi').map((f) => f.options!))];
+      const [rows, ...lists] = await Promise.all([
+        this.api.list<Row>(slug, resource),
+        ...sources.map((s) => this.api.list<Option>(slug, s)),
+      ]);
+      this.options.set(Object.fromEntries(sources.map((s, i) => [s, lists[i] as Option[]])));
+      this.rows.set(rows as Row[]);
     } catch (e) {
       this.toasts.error(apiErrors(e).general ?? 'Yuklab bo\'lmadi');
     } finally {
@@ -198,13 +258,55 @@ export class EntityPage {
   }
 
   protected openNew() {
-    this.errors.set(null);
+    this.resetForm();
     this.draft.set(Object.fromEntries(this.config().fields.map((f) => [f.key, newValue(f, this.rows().length)])));
   }
 
   protected openEdit(r: Row) {
-    this.errors.set(null);
+    this.resetForm();
     this.draft.set({ ...r });
+  }
+
+  private resetForm() {
+    this.errors.set(null);
+    for (const url of Object.values(this.previews())) URL.revokeObjectURL(url);
+    this.previews.set({});
+    this.pendingImages.set({});
+  }
+
+  protected imagePreview(key: string, d: Record<string, unknown>): string | null {
+    const pending = this.pendingImages();
+    if (key in pending) return pending[key] ? this.previews()[key] : null;
+    return (d[key] as string | null) ?? null;
+  }
+
+  protected pickImage(key: string, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // o'sha faylni qayta tanlasa ham change ishlasin
+    if (!file) return;
+    const old = this.previews()[key];
+    if (old) URL.revokeObjectURL(old);
+    this.previews.update((p) => ({ ...p, [key]: URL.createObjectURL(file) }));
+    this.pendingImages.update((p) => ({ ...p, [key]: file }));
+  }
+
+  protected clearImage(key: string) {
+    this.pendingImages.update((p) => ({ ...p, [key]: null }));
+  }
+
+  protected isPicked(value: unknown, id: number): boolean {
+    return Array.isArray(value) && value.includes(id);
+  }
+
+  protected toggle(key: string, id: number) {
+    const current = (this.draft()?.[key] as number[] | undefined) ?? [];
+    this.set(key, this.isPicked(current, id) ? current.filter((x) => x !== id) : [...current, id]);
+  }
+
+  protected optionNames(f: EntityField, value: unknown): string {
+    const ids = Array.isArray(value) ? value : [];
+    return (this.options()[f.options!] ?? []).filter((o) => ids.includes(o.id)).map((o) => o.name).join(', ');
   }
 
   protected set(key: string, value: unknown) {
@@ -216,23 +318,31 @@ export class EntityPage {
   }
 
   protected close() {
+    this.resetForm();
     this.draft.set(null);
-    this.errors.set(null);
   }
 
   protected async save() {
     const d = this.draft();
     if (!d) return;
     this.saving.set(true);
-    const body = Object.fromEntries(this.config().fields.map((f) => {
+    // Rasm JSON bilan yuborilmaydi — saqlangandan keyin alohida (multipart) so'rov
+    const body = Object.fromEntries(this.config().fields.filter((f) => f.type !== 'image').map((f) => {
       const v = d[f.key];
       if (f.type === 'checkbox') return [f.key, !!v];
+      if (f.type === 'multi') return [f.key, Array.isArray(v) ? v : []];
       return [f.key, f.type === 'number' ? (v === '' || v === null ? null : Number(v)) : (v ?? '')];
     }));
     const slug = this.ctx.slug();
+    const resource = this.config().resource;
     try {
-      if (d['id']) await this.api.update(slug, this.config().resource, d['id'] as number, body);
-      else await this.api.create(slug, this.config().resource, body);
+      const saved = d['id']
+        ? await this.api.update<Row>(slug, resource, d['id'] as number, body)
+        : await this.api.create<Row>(slug, resource, body);
+      for (const [key, file] of Object.entries(this.pendingImages())) {
+        if (file) await this.api.upload(slug, resource, saved.id, key, file);
+        else await this.api.update(slug, resource, saved.id, { [key]: null });
+      }
       this.toasts.ok('Saqlandi');
       this.close();
       await this.load(slug, this.config().resource);
@@ -263,9 +373,16 @@ export class EntityPage {
   }
 }
 
+interface Option {
+  id: number;
+  name: string;
+}
+
 function newValue(f: EntityField, count: number): unknown {
   if (f.type === 'color') return PALETTE[count % PALETTE.length];
   if (f.type === 'checkbox') return true;
+  if (f.type === 'multi') return [];
+  if (f.type === 'image') return null;
   return '';
 }
 
@@ -300,7 +417,10 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
   groups: {
     resource: 'groups', title: 'Guruhlar', singular: 'Guruh',
     emptyTitle: "Hali guruh qo'shilmagan", emptyHint: 'Masalan: 7-A, 9-B.',
-    fields: [{ key: 'name', label: 'Nomi', required: true }],
+    fields: [
+      { key: 'name', label: 'Nomi', required: true },
+      { key: 'image', label: 'Alloma rasmi', type: 'image', hint: "Shu guruh darsi paytida planshetda ko'rinadi." },
+    ],
   },
   quotes: {
     resource: 'quotes', title: "Hikmatli so'zlar", singular: "Hikmatli so'z",
@@ -309,6 +429,10 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
     fields: [
       { key: 'text', label: 'Matn', type: 'textarea', required: true, maxlength: 300 },
       { key: 'author', label: 'Muallif' },
+      { key: 'image', label: 'Muallif rasmi', type: 'image', column: false,
+        hint: "Iqtibosning chap tomonida. Bo'lmasa — bog'langan guruhning alloma rasmi." },
+      { key: 'groups', label: 'Guruhlar', type: 'multi', options: 'groups',
+        hint: "Tanlansa — faqat shu guruhlar darsi paytida. Tanlanmasa — umumiy: tanaffus va boshqa paytlarda." },
       { key: 'is_active', label: "Planshetda ko'rsatilsin", type: 'checkbox' },
     ],
   },

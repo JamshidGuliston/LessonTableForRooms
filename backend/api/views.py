@@ -90,12 +90,14 @@ class TabletView(APIView):
         Room.objects.filter(pk=room.pk).update(last_seen_at=timezone.now())
         now = school_now(room.school)
         day = _parse_date(request.query_params.get('date'), now.date())
+        schedule = room_day(room, day, now=now)
+        current = schedule['current']
         return Response({
             'school': ser.SchoolSerializer(room.school).data,
             'room': {'id': room.id, 'name': room.name, 'floor': room.floor},
             'now': now.isoformat(timespec='seconds'),
-            'day': room_day(room, day, now=now),
-            'quote': quote_for(room.school, now),
+            'day': schedule,
+            'quote': quote_for(room.school, now, current['group_ids'] if current else ()),
         })
 
 

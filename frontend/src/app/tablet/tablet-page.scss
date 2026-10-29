@@ -149,7 +149,18 @@
   }
   figcaption { align-self: flex-end; font-size: 20px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
   &.long blockquote { font-size: 24px; }
+
+  .quote-body { display: flex; flex-direction: column; gap: 16px; }
+  // Muallif rasmi — chapda
+  &.with-image { flex-direction: row; align-items: center; justify-content: flex-start; gap: 32px; text-align: left; }
+  &.with-image .quote-body { flex: 1; }
+  .author-photo { width: 160px; height: 200px; flex: none; object-fit: cover; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-2); }
 }
+
+// Dars paytida — guruh (alloma) rasmi o'ngda
+.hero-top { display: flex; gap: 24px; align-items: flex-start; }
+.hero-main { flex: 1; min-width: 0; }
+.portrait { width: 150px; height: 180px; flex: none; object-fit: cover; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); }
 
 @media (max-width: 700px) {
   :host { padding: 16px; }
@@ -159,6 +170,9 @@
   .hero .hero-title { font-size: 36px; }
   .hero .hero-sub { font-size: 20px; }
   .quote { padding: 20px; blockquote { font-size: 22px; } &.long blockquote { font-size: 18px; } figcaption { font-size: 16px; } }
+  .quote.with-image { gap: 16px; }
+  .quote .author-photo { width: 96px; height: 120px; }
+  .portrait { width: 96px; height: 116px; }
 }
 
 // Hero yorlig'i tur rangida (Android ilova bilan bir xil)

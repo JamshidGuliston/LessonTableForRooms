@@ -17,7 +17,7 @@ object TabletApi {
     suspend fun fetch(config: TabletConfig): TabletData =
         request(config.tabletUrl, "GET") { code, body ->
             when (code) {
-                200 -> TabletJson.parse(body)
+                200 -> TabletJson.parse(body, config.server)
                 404 -> throw TokenRejectedException()
                 else -> throw IOException("HTTP $code")
             }

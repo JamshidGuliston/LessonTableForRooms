@@ -144,13 +144,22 @@ def _entry(kind, title, start, end, **extra):
         'group': None,
         'teacher': None,
         'subject_color': None,
+        # Guruh (alloma) rasmi, nisbiy URL: /media/groups/...
+        'image': None,
+        # Shu yozuvdagi guruhlar — iqtibos tanlash uchun
+        'group_ids': [],
         'status': 'upcoming',
     }
     base.update(extra)
     return base
 
 
+def _image_url(groups):
+    return next((g.image.url for g in groups if g.image), None)
+
+
 def _lesson_entry(lesson):
+    groups = list(lesson.groups.all())
     return _entry(
         'lesson',
         lesson.subject_names,
@@ -159,6 +168,8 @@ def _lesson_entry(lesson):
         group=lesson.group_names,
         teacher=lesson.teacher_names,
         subject_color=next((s.color for s in lesson.subjects.all() if s.color), None),
+        image=_image_url(groups),
+        group_ids=[g.id for g in groups],
     )
 
 
@@ -191,6 +202,8 @@ def _exam_entry(exam):
         group=exam.group.name,
         teacher=exam.invigilator.full_name if exam.invigilator else None,
         subject_color=exam.subject.color or None,
+        image=_image_url([exam.group]),
+        group_ids=[exam.group_id],
     )
 
 
@@ -211,11 +224,22 @@ def _mark_statuses(entries, now):
 QUOTE_ROTATE_MINUTES = 1
 
 
-def quote_for(school, now):
-    """Hikmatli so'z: har QUOTE_ROTATE_MINUTES daqiqada navbatdagisi, butun maktab bo'ylab bir xil.
-    Planshet har 30 s so'raydi — yangisi shu vaqt ichida ko'rinadi."""
-    quotes = list(Quote.objects.filter(school=school, is_active=True).values('text', 'author'))
+def quote_for(school, now, group_ids=()):
+    """Hikmatli so'z, har QUOTE_ROTATE_MINUTES daqiqada navbatdagisi.
+
+    - Hozir dars bo'layotgan guruh(lar)ga bog'langan iqtiboslar bo'lsa — faqat ular;
+    - aks holda (tanaffus, bo'sh xona, guruhga iqtibos yo'q) — hech qaysi guruhga bog'lanmaganlar.
+    Planshet har 30 s so'raydi — yangisi shu vaqt ichida ko'rinadi.
+    """
+    active = Quote.objects.filter(school=school, is_active=True).prefetch_related('groups')
+    quotes = list(active.filter(groups__in=group_ids).distinct()) if group_ids else []
+    if not quotes:
+        quotes = list(active.filter(groups=None))
     if not quotes:
         return None
     minute = (now.date().toordinal() * 24 + now.hour) * 60 + now.minute
-    return quotes[(minute // QUOTE_ROTATE_MINUTES) % len(quotes)]
+    quote = quotes[(minute // QUOTE_ROTATE_MINUTES) % len(quotes)]
+    # Rasm: muallifniki, bo'lmasa — bog'langan (hozirgi) guruhning alloma rasmi
+    groups = [g for g in quote.groups.all() if not group_ids or g.id in group_ids]
+    image = quote.image.url if quote.image else _image_url(groups)
+    return {'text': quote.text, 'author': quote.author, 'image': image}

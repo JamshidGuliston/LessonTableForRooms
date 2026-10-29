@@ -370,7 +370,7 @@ class QuoteTests(APITestCase):
         text = "Yoshlar bizning tayanchimiz, ertangi kundan umidimiz, ezgu ishlarimiz davomchisidir"
         res = self.client.post('/api/schools/a/quotes/', {'text': text, 'author': 'Sh. Mirziyoyev'})
         self.assertEqual(res.status_code, 201, res.data)
-        self.assertEqual(self.tablet_quote(), {'text': text, 'author': 'Sh. Mirziyoyev'})
+        self.assertEqual(self.tablet_quote(), {'text': text, 'author': 'Sh. Mirziyoyev', 'image': None})
 
     def test_inactive_quote_is_hidden(self):
         self.client.post('/api/schools/a/quotes/', {'text': 'X', 'is_active': False})

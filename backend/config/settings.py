@@ -162,6 +162,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT', BASE_DIR / 'staticfiles')
 
+# Yuklangan rasmlar (alloma, muallif). Hostingda domen papkasida — Apache o'zi beradi.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media')
+
 # Nginx orqasida: https ekanini X-Forwarded-Proto dan bilamiz; admin login uchun CSRF manbalari
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o]

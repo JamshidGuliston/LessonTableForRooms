@@ -118,3 +118,4 @@ class ExamAdmin(SchoolOwnedAdmin):
 class QuoteAdmin(SchoolOwnedAdmin):
     list_display = ['text', 'author', 'is_active', 'school']
     list_filter = ['school', 'is_active']
+    filter_horizontal = ['groups']

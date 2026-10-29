@@ -29,6 +29,13 @@ export class SchoolApi {
     return firstValueFrom(this.http.patch<T>(this.url(slug, `${resource}/${id}/`), body));
   }
 
+  /** Bitta fayl maydonini (masalan rasm) multipart bilan yuklaydi */
+  upload<T>(slug: string, resource: string, id: number, field: string, file: File): Promise<T> {
+    const form = new FormData();
+    form.append(field, file);
+    return firstValueFrom(this.http.patch<T>(this.url(slug, `${resource}/${id}/`), form));
+  }
+
   remove(slug: string, resource: string, id: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(this.url(slug, `${resource}/${id}/`)));
   }

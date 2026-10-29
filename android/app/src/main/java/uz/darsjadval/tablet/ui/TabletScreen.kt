@@ -228,29 +228,45 @@ private fun Hero(current: Schedule.Current, next: DayEntry?) {
             .border(borderWidth, c.accent, shape)
             .padding(horizontal = d.dp(40), vertical = d.dp(30)),
     ) {
-        Text(
-            "${kindLabel(e.kind)} · ${Format.range(e.startMin, e.endMin)}",
-            style = tabular,
-            fontSize = d.sp(20),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.12.em,
-            color = c.text,
-        )
-        Spacer(Modifier.height(d.dp(6)))
-        Text(
-            e.title,
-            fontFamily = Inter,
-            fontSize = d.sp(60),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.01).em,
-            color = if (isBreak) c.text else Palette.text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        val sub = heroSubline(e)
-        if (sub != null) {
-            Spacer(Modifier.height(d.dp(6)))
-            Text(sub, fontFamily = Inter, fontSize = d.sp(30), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${kindLabel(e.kind)} · ${Format.range(e.startMin, e.endMin)}",
+                    style = tabular,
+                    fontSize = d.sp(20),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.12.em,
+                    color = c.text,
+                )
+                Spacer(Modifier.height(d.dp(6)))
+                Text(
+                    e.title,
+                    fontFamily = Inter,
+                    fontSize = d.sp(60),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.01).em,
+                    color = if (isBreak) c.text else Palette.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val sub = heroSubline(e)
+                if (sub != null) {
+                    Spacer(Modifier.height(d.dp(6)))
+                    Text(sub, fontFamily = Inter, fontSize = d.sp(30), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            // Sinf nomi berilgan alloma rasmi
+            e.image?.let {
+                Spacer(Modifier.width(d.dp(24)))
+                RemoteImage(
+                    it,
+                    Modifier
+                        .size(width = d.dp(150), height = d.dp(180))
+                        .clip(RoundedCornerShape(d.dp(14)))
+                        .border(1.dp, Palette.border, RoundedCornerShape(d.dp(14))),
+                    contentDescription = e.group,
+                )
+            }
         }
         Spacer(Modifier.height(d.dp(22)))
         ProgressBar(current.progress, c.accent)
@@ -397,37 +413,53 @@ private fun QuoteCard(quote: Quote, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(d.dp(20))
     // Uzun matn kichikroq shriftda — 300 belgigacha sig'ishi kerak
     val size = if (quote.text.length > 140) 26 else 34
-    Column(
+    // Muallif rasmi bo'lsa — chapda, matn chapga tekislanadi
+    val align = if (quote.image != null) TextAlign.Start else TextAlign.Center
+    Row(
         modifier
             .fillMaxWidth()
             .clip(shape)
             .background(Palette.surface)
             .border(1.dp, Palette.border, shape)
             .padding(horizontal = d.dp(40), vertical = d.dp(28)),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            "\u201C${quote.text.uppercase()}\u201D",
-            fontFamily = Inter,
-            fontSize = d.sp(size),
-            lineHeight = d.sp(size * 1.3f),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.02.em,
-            color = Palette.primaryText,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        quote.author?.let {
-            Spacer(Modifier.height(d.dp(14)))
+        quote.image?.let {
+            RemoteImage(
+                it,
+                Modifier
+                    .size(width = d.dp(160), height = d.dp(200))
+                    .clip(RoundedCornerShape(d.dp(16)))
+                    .border(1.dp, Palette.border, RoundedCornerShape(d.dp(16))),
+                contentDescription = quote.author,
+            )
+            Spacer(Modifier.width(d.dp(32)))
+        }
+        Column(Modifier.weight(1f)) {
             Text(
-                it.uppercase(),
+                "“${quote.text.uppercase()}”",
                 fontFamily = Inter,
-                fontSize = d.sp(20),
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.08.em,
-                color = Palette.muted,
-                textAlign = TextAlign.End,
+                fontSize = d.sp(size),
+                lineHeight = d.sp(size * 1.3f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.02.em,
+                color = Palette.primaryText,
+                textAlign = align,
                 modifier = Modifier.fillMaxWidth(),
             )
+            quote.author?.let {
+                Spacer(Modifier.height(d.dp(14)))
+                Text(
+                    it.uppercase(),
+                    fontFamily = Inter,
+                    fontSize = d.sp(20),
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.08.em,
+                    color = Palette.muted,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from .images import ImageUploadField, delete_replaced
 from .models import (
     AcademicYear,
     Break,
@@ -48,6 +49,12 @@ class SchoolScopedSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         instance = self.instance or self.Meta.model()
         for key, value in attrs.items():
+            # M2M ni saqlanmagan ob'ektga qo'yib bo'lmaydi; clean() ga faqat oddiy maydonlar
+            try:
+                if instance._meta.get_field(key).many_to_many:
+                    continue
+            except FieldDoesNotExist:
+                pass
             setattr(instance, key, value)
         instance.school = self.context['school']
         try:
@@ -160,10 +167,27 @@ class RoomSerializer(SchoolScopedSerializer):
         read_only_fields = ['device_token', 'last_seen_at', 'tablet_status']
 
 
-class GroupSerializer(SchoolScopedSerializer):
+class ImageModelSerializer(SchoolScopedSerializer):
+    """`image` maydoni bor model: almashtirilsa/olib tashlansa eski fayl o'chiriladi."""
+
+    image = ImageUploadField()
+
+    def __init__(self, instance=None, *args, **kwargs):
+        super().__init__(instance, *args, **kwargs)
+        # validate() yangi qiymatni ob'ektga oldinroq qo'yadi — eski nomni hozir eslab qolamiz
+        self._old_image = instance.image.name if isinstance(instance, self.Meta.model) else ''
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        if 'image' in validated_data:
+            delete_replaced(instance, 'image', self._old_image)
+        return instance
+
+
+class GroupSerializer(ImageModelSerializer):
     class Meta:
         model = Group
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'image']
 
 
 class PeriodSerializer(SchoolScopedSerializer):
@@ -235,13 +259,13 @@ class LessonSerializer(SchoolScopedSerializer):
         return attrs
 
 
-class QuoteSerializer(SchoolScopedSerializer):
+class QuoteSerializer(ImageModelSerializer):
     # Form-data da yuborilmagan checkbox DRF uchun False — yangi so'z sukut bo'yicha faol bo'lsin
     is_active = serializers.BooleanField(default=True)
 
     class Meta:
         model = Quote
-        fields = ['id', 'text', 'author', 'is_active']
+        fields = ['id', 'text', 'author', 'image', 'groups', 'is_active']
 
 
 class ClubSerializer(SchoolScopedSerializer):

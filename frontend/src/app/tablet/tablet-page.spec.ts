@@ -14,6 +14,8 @@ function entry(over: Partial<DayEntry>): DayEntry {
     group: '7-A',
     teacher: 'Aliyev A.',
     subject_color: null,
+    image: null,
+    group_ids: [],
     status: 'upcoming',
     ...over,
   };
@@ -123,9 +125,21 @@ describe('TabletPage', () => {
   });
 
   it('shows the quote with its author after the list', async () => {
-    const el = await render(response({ entries: [entry({})] }, { text: 'Yoshlar bizning tayanchimiz', author: 'Sh. Mirziyoyev' }));
+    const el = await render(response({ entries: [entry({})] }, { text: 'Yoshlar bizning tayanchimiz', author: 'Sh. Mirziyoyev', image: null }));
     expect(el.querySelector('.quote blockquote')?.textContent).toContain('Yoshlar bizning tayanchimiz');
     expect(el.querySelector('.quote figcaption')?.textContent).toContain('Sh. Mirziyoyev');
+  });
+
+  it('shows the author photo on the left of the quote', async () => {
+    const el = await render(response({ entries: [entry({})] }, { text: 'Ilm — nur', author: 'Navoiy', image: '/media/quotes/n.jpg' }));
+    const quote = el.querySelector('.quote.with-image')!;
+    expect(quote.firstElementChild?.getAttribute('src')).toBe('/media/quotes/n.jpg');
+  });
+
+  it('shows the group portrait in the hero during the lesson', async () => {
+    const active = entry({ status: 'active', image: '/media/groups/fargoniy.jpg', group: "8-02 Ahmad al-Farg'oniy" });
+    const el = await render(response({ entries: [active], current: active }));
+    expect(el.querySelector('.hero .portrait')?.getAttribute('src')).toBe('/media/groups/fargoniy.jpg');
   });
 
   it('shows no quote block when the school has none', async () => {

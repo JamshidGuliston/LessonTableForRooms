@@ -13,6 +13,9 @@ export interface DayEntry {
   group: string | null;
   teacher: string | null;
   subject_color: string | null;
+  /** Guruh (alloma) rasmi, nisbiy URL (/media/...) */
+  image: string | null;
+  group_ids: number[];
   status: EntryStatus;
 }
 
@@ -38,4 +41,6 @@ export interface TabletResponse {
 export interface Quote {
   text: string;
   author: string;
+  /** Muallif rasmi (bo'lmasa — bog'langan guruh rasmi), nisbiy URL */
+  image: string | null;
 }

@@ -20,8 +20,11 @@ object TabletJson {
         }
     }
 
-    fun parse(body: String): TabletData {
+    /** `server` — rasmlarning nisbiy manzili (/media/...) shunga qo'shiladi. */
+    fun parse(body: String, server: String = ""): TabletData {
         val root = JSONObject(body)
+        val base = server.trimEnd('/')
+        fun url(o: JSONObject) = o.nullableString("image")?.let { if (it.startsWith("http")) it else base + it }
         val day = root.getJSONObject("day")
         val entries = day.optJSONArray("entries")
         return TabletData(
@@ -33,9 +36,14 @@ object TabletJson {
                 status = dayStatus(day.optString("status")),
                 title = day.optString("title"),
                 resumesOn = day.nullableString("resumes_on")?.let(LocalDate::parse),
-                entries = (0 until (entries?.length() ?: 0)).map { entry(entries!!.getJSONObject(it)) },
+                entries = (0 until (entries?.length() ?: 0)).map {
+                    val o = entries!!.getJSONObject(it)
+                    entry(o).copy(image = url(o))
+                },
             ),
-            quote = root.optJSONObject("quote")?.let { Quote(text = it.optString("text"), author = it.nullableString("author")) },
+            quote = root.optJSONObject("quote")?.let {
+                Quote(text = it.optString("text"), author = it.nullableString("author"), image = url(it))
+            },
         )
     }
 

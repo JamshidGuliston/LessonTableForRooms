@@ -1,4 +1,6 @@
 import secrets
+import uuid
+from pathlib import PurePath
 from datetime import timedelta
 
 from django.conf import settings
@@ -173,10 +175,25 @@ class TabletPairing(models.Model):
         return max(0, int((start + self.TTL - timezone.now()).total_seconds()))
 
 
+def _random_name(folder, filename):
+    """Tasodifiy nom: foydalanuvchi fayl nomidagi kirill/bo'shliqlar URL'ni buzmasin."""
+    return f'{folder}/{uuid.uuid4().hex}{PurePath(filename).suffix.lower()}'
+
+
+def upload_group_image(instance, filename):
+    return _random_name('groups', filename)
+
+
+def upload_quote_image(instance, filename):
+    return _random_name('quotes', filename)
+
+
 class Group(SchoolOwnedModel):
-    """Sinf / guruh, masalan 7-A."""
+    """Sinf / guruh, masalan 7-A yoki "8-02 Ahmad al-Farg'oniy"."""
 
     name = models.CharField(max_length=50)
+    # Sinfga nomi berilgan alloma rasmi — shu guruh darsida planshetda ko'rinadi
+    image = models.ImageField(upload_to=upload_group_image, blank=True)
 
     class Meta:
         unique_together = [('school', 'name')]
@@ -459,6 +476,10 @@ class Quote(SchoolOwnedModel):
 
     text = models.TextField(max_length=MAX_LENGTH)
     author = models.CharField(max_length=100, blank=True)
+    # Muallif rasmi — iqtibosning chap tomonida
+    image = models.ImageField(upload_to=upload_quote_image, blank=True)
+    # Bog'langan bo'lsa — faqat shu guruhlar darsi paytida; bog'lanmagani — tanaffus va boshqa paytda
+    groups = models.ManyToManyField(Group, blank=True, related_name='quotes')
     is_active = models.BooleanField(default=True)
 
     class Meta:

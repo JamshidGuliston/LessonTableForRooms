@@ -23,6 +23,8 @@ data class DayEntry(
     val teacher: String?,
     /** Fan/to'garak rangi "#RRGGBB" */
     val color: String?,
+    /** Guruh (alloma) rasmi — to'liq URL */
+    val image: String? = null,
 )
 
 data class RoomDay(
@@ -43,7 +45,8 @@ data class TabletData(
     val quote: Quote? = null,
 )
 
-data class Quote(val text: String, val author: String?)
+/** `image` — muallif rasmi (bo'lmasa bog'langan guruhniki), to'liq URL */
+data class Quote(val text: String, val author: String?, val image: String? = null)
 
 /** Kompyutersiz ulash: ekranda `code`, tokenni faqat `secret` bilan olamiz. */
 data class PairStart(val secret: String, val code: String)
