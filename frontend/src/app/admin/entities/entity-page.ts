@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ApiErrors, apiErrors } from '../../core/errors';
@@ -235,8 +235,12 @@ export class EntityPage {
     effect(() => {
       const slug = this.ctx.slug();
       const resource = this.config().resource;
-      this.close();
-      if (slug) void this.load(slug, resource);
+      // Faqat maktab/bo'lim o'zgarsa qayta ishlasin: close() va load() ichida o'qiladigan
+      // signallar (previews, config.fields…) kuzatilmasin — aks holda effect cheksiz aylanadi.
+      untracked(() => {
+        this.close();
+        if (slug) void this.load(slug, resource);
+      });
     });
   }
 
